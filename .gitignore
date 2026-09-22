@@ -45,3 +45,6 @@ next-env.d.ts
 
 # MD files
 *.md
+
+# tar files
+*.tar.gz

@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint & type check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate next-env.d.ts
+        run: |
+          cat > next-env.d.ts <<'EOF'
+          /// <reference types="next" />
+          /// <reference types="next/image-types/global" />
+
+          // NOTE: This file should not be edited
+          // see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+          EOF
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: |
+          BASELINE=7
+          npx tsc --noEmit 2>&1 | tee /tmp/tsc.log || true
+          COUNT=$(grep -c "error TS" /tmp/tsc.log || true)
+          echo "TypeScript errors: $COUNT (baseline: $BASELINE)"
+          if [ "$COUNT" -gt "$BASELINE" ]; then
+            echo "::error::$COUNT type errors, baseline is $BASELINE — this change introduced $((COUNT - BASELINE)) new one(s)."
+            grep "error TS" /tmp/tsc.log
+            exit 1
+          fi
+          if [ "$COUNT" -lt "$BASELINE" ]; then
+            echo "::notice::Only $COUNT errors (baseline $BASELINE) — please lower BASELINE in .github/workflows/ci.yml"
+          fi
