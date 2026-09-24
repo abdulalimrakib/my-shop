@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils";
 import { CatalogProduct } from "@/types";
 import useStore from "@/store";
 import { Heart } from "lucide-react";
-import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { useHydrated } from "@/hooks/useHydrated";
 
 const ProductSideMenu = ({
   product,
@@ -14,13 +14,10 @@ const ProductSideMenu = ({
   className?: string;
 }) => {
   const { favoriteProduct, addToFavorite } = useStore();
-  const [existingProduct, setExistingProduct] = useState<CatalogProduct | null>(null);
-  useEffect(() => {
-    const availableProduct = favoriteProduct?.find(
-      (item) => item?._id === product?._id
-    );
-    setExistingProduct(availableProduct || null);
-  }, [product, favoriteProduct]);
+  const hydrated = useHydrated();
+  // Favorites come from localStorage, so only show them after hydration
+  const existingProduct =
+    hydrated && favoriteProduct.some((item) => item?._id === product?._id);
   const handleFavorite = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     if (product?._id) {

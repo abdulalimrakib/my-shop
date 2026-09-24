@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import { useAsyncData } from "@/hooks/useAsyncData";
 import ProductCard from "./ProductCard";
 import { motion, AnimatePresence } from "motion/react";
 import { getProductsByVariant } from "@/actions/catalog";
@@ -8,31 +9,12 @@ import NoProductAvailable from "./NoProductAvailable";
 import Container from "./Container";
 import HomeTabbar from "./HomeTabbar";
 import { productType } from "@/constants/data";
-import { CatalogProduct } from "@/types";
 import ProductGridSkeleton from "./ProductCardSkeleton";
 
 const ProductGrid = () => {
-  const [products, setProducts] = useState<CatalogProduct[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState(productType[0]?.title || "");
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    getProductsByVariant(selectedTab)
-      .then((data) => {
-        if (!cancelled) setProducts(data);
-      })
-      .catch((error) => {
-        console.error("Product fetching error", error);
-        if (!cancelled) setProducts([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedTab]);
+  const { data, loading } = useAsyncData(selectedTab, getProductsByVariant);
+  const products = data ?? [];
 
   return (
     <Container className="flex flex-col lg:px-0 my-10">

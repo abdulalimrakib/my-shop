@@ -1,6 +1,6 @@
 import Container from "@/components/Container";
 import Title from "@/components/Title";
-import { OTHERS_BLOG_QUERYResult } from "@/sanity.types";
+import { OTHERS_BLOG_QUERY_RESULT } from "@/sanity.types";
 import { urlFor } from "@/sanity/lib/image";
 import {
   getBlogCategories,
@@ -177,6 +177,8 @@ const SingleBlogPage = async ({ params }: Props) => {
                             </>
                           ),
                           link: ({ value, children }) => {
+                            // A link mark without a URL renders as plain text
+                            if (!value?.href) return <>{children}</>;
                             return (
                               <Link
                                 href={value.href}
@@ -233,7 +235,7 @@ const BlogLeft = async ({ slug }: { slug: string }) => {
         <Title className="text-base">Latest Blogs</Title>
         <div className="space-y-4 mt-4">
           {blogs?.map(
-            (blog: OTHERS_BLOG_QUERYResult[number], index: number) => (
+            (blog: OTHERS_BLOG_QUERY_RESULT[number], index: number) => (
               <Link
                 href={`/blog/${blog?.slug?.current}`}
                 key={index}

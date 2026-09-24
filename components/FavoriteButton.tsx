@@ -3,8 +3,9 @@ import { CatalogProduct } from "@/types";
 import useStore from "@/store";
 import { Heart } from "lucide-react";
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import toast from "react-hot-toast";
+import { useHydrated } from "@/hooks/useHydrated";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 
@@ -16,13 +17,10 @@ const FavoriteButton = ({
   product?: CatalogProduct | null | undefined;
 }) => {
   const { favoriteProduct, addToFavorite } = useStore();
-  const [existingProduct, setExistingProduct] = useState<CatalogProduct | null>(null);
-  useEffect(() => {
-    const availableItem = favoriteProduct.find(
-      (item) => item?._id === product?._id,
-    );
-    setExistingProduct(availableItem || null);
-  }, [product, favoriteProduct]);
+  const hydrated = useHydrated();
+  // Favorites come from localStorage, so only show them after hydration
+  const existingProduct =
+    hydrated && favoriteProduct.some((item) => item?._id === product?._id);
 
   const handleFavorite = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -41,12 +39,12 @@ const FavoriteButton = ({
       {!showProduct ? (
         <Link
           href={"/wishlist"}
-          aria-label={`Wishlist, ${favoriteProduct?.length ?? 0} items`}
+          aria-label={`Wishlist, ${hydrated ? favoriteProduct.length : 0} items`}
           className="group relative"
         >
           <Heart className="w-5 h-5 hover:text-shop_light_green hoverEffect" />
           <Badge className="absolute -top-1 -right-1 h-3.5 min-w-3.5 px-0.5 bg-shop_dark_green text-white text-xs font-semibold tabular-nums">
-            {favoriteProduct?.length ? favoriteProduct?.length : 0}
+            {hydrated ? favoriteProduct.length : 0}
           </Badge>
         </Link>
       ) : (

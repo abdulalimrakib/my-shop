@@ -1,6 +1,6 @@
 "use client";
 
-import { SearchProduct } from "@/types";
+import { useAsyncData } from "@/hooks/useAsyncData";
 import { searchProducts } from "@/actions/catalog";
 import { urlFor } from "@/sanity/lib/image";
 import { Search, X } from "lucide-react";
@@ -70,44 +70,25 @@ const descriptionSnippet = (text: string, matcher: RegExp) => {
 const SearchBar = () => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [products, setProducts] = useState<SearchProduct[]>([]);
-  const [loading, setLoading] = useState(false);
-
+  const term = search.trim();
+  // Debounce so we don't query Sanity on every keystroke
+  const [debouncedTerm, setDebouncedTerm] = useState("");
   useEffect(() => {
-    const term = search.trim();
-    if (!term) {
-      setProducts([]);
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-    setLoading(true);
-    // Debounce so we don't query Sanity on every keystroke
-    const timer = setTimeout(async () => {
-      try {
-        const data = await searchProducts(term);
-        if (!cancelled) setProducts(data);
-      } catch (error) {
-        console.error("Product search failed:", error);
-        if (!cancelled) setProducts([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }, 300);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [search]);
+    const timer = setTimeout(() => setDebouncedTerm(term), 300);
+    return () => clearTimeout(timer);
+  }, [term]);
+  const { data, loading: fetching } = useAsyncData(
+    debouncedTerm || null,
+    searchProducts,
+  );
+  const products = (term && data) || [];
+  const loading = !!term && (term !== debouncedTerm || fetching);
 
   const handleOpenChange = (value: boolean) => {
     setOpen(value);
     if (!value) setSearch("");
   };
 
-  const term = search.trim();
   const matcher = buildMatcher(term);
 
   return (

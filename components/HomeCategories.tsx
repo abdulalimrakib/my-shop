@@ -1,12 +1,12 @@
 import React from "react";
 import Title from "./Title";
-import { CATEGORIES_QUERYResult } from "@/sanity.types";
+import { CATEGORIES_QUERY_RESULT } from "@/sanity.types";
 import Image from "next/image";
 import { urlFor } from "@/sanity/lib/image";
 import Link from "next/link";
 import { Card, CardContent } from "./ui/card";
 
-const HomeCategories = ({ categories }: { categories: CATEGORIES_QUERYResult }) => {
+const HomeCategories = ({ categories }: { categories: CATEGORIES_QUERY_RESULT }) => {
   return (
     <div className="bg-white border border-shop_light_green/20 my-10 md:my-20 p-5 lg:p-7 rounded-md">
       <Title className="border-b pb-3">Popular Categories</Title>

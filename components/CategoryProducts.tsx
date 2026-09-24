@@ -1,8 +1,8 @@
 "use client";
 import { Category } from "@/sanity.types";
-import { CatalogProduct } from "@/types";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React from "react";
+import { useAsyncData } from "@/hooks/useAsyncData";
 import { Button } from "./ui/button";
 import { getProductsByCategory } from "@/actions/catalog";
 import { AnimatePresence, motion } from "motion/react";
@@ -15,33 +15,14 @@ interface Props {
 }
 
 const CategoryProducts = ({ categories, slug: currentSlug }: Props) => {
-  const [products, setProducts] = useState<CatalogProduct[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading } = useAsyncData(currentSlug, getProductsByCategory);
+  const products = data ?? [];
   const router = useRouter();
   const handleCategoryChange = (newSlug: string) => {
     if (newSlug === currentSlug) return;
     // The page re-renders with the new slug, which refetches below
     router.push(`/category/${newSlug}`, { scroll: false });
   };
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    getProductsByCategory(currentSlug)
-      .then((data) => {
-        if (!cancelled) setProducts(data);
-      })
-      .catch((error) => {
-        console.error("Error fetching products:", error);
-        if (!cancelled) setProducts([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [currentSlug]);
 
   return (
     <div className="py-5 flex flex-col md:flex-row items-start gap-5">
@@ -50,7 +31,9 @@ const CategoryProducts = ({ categories, slug: currentSlug }: Props) => {
           <Button
             onClick={() => handleCategoryChange(item?.slug?.current as string)}
             key={item?._id}
-            aria-current={item?.slug?.current === currentSlug ? "page" : undefined}
+            aria-current={
+              item?.slug?.current === currentSlug ? "page" : undefined
+            }
             className={`bg-transparent border-0 p-0  rounded-none text-darkColor shadow-none hover:bg-shop_orange hover:text-white font-semibold hoverEffect border-b last:border-b-0 transition-colors capitalize ${item?.slug?.current === currentSlug && "bg-shop_orange text-white border-shop_orange"}`}
           >
             <p className="w-full text-left px-2">{item?.title}</p>

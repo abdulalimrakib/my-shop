@@ -1,4 +1,4 @@
-import { LATEST_BLOG_QUERYResult } from "@/sanity.types";
+import { LATEST_BLOG_QUERY_RESULT } from "@/sanity.types";
 import { urlFor } from "@/sanity/lib/image";
 import { cn } from "@/lib/utils";
 import dayjs from "dayjs";
@@ -9,7 +9,7 @@ import React from "react";
 import { Card, CardContent } from "./ui/card";
 
 type BlogCardData = Pick<
-  LATEST_BLOG_QUERYResult[number],
+  LATEST_BLOG_QUERY_RESULT[number],
   "slug" | "mainImage" | "blogcategories" | "publishedAt" | "title"
 >;
 

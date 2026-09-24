@@ -1,14 +1,14 @@
 "use client";
-import { BRANDS_QUERYResult, Category } from "@/sanity.types";
-import { CatalogProduct } from "@/types";
-import React, { useCallback, useEffect, useState } from "react";
+import { BRANDS_QUERY_RESULT, Category } from "@/sanity.types";
+import React, { useCallback } from "react";
+import { useAsyncData } from "@/hooks/useAsyncData";
 import Container from "./Container";
 import Title from "./Title";
 import CategoryList from "./shop/CategoryList";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import BrandList from "./shop/BrandList";
 import PriceList, { parsePriceRange } from "./shop/PriceList";
-import { getFilteredProducts, ProductFilters } from "@/actions/catalog";
+import { getFilteredProducts, type ProductFilters } from "@/actions/catalog";
 import NoProductAvailable from "./NoProductAvailable";
 import ProductCard from "./ProductCard";
 import ProductGridSkeleton from "./ProductCardSkeleton";
@@ -45,24 +45,44 @@ type FilterKey = "category" | "brand" | "price";
 const readList = (params: URLSearchParams, key: FilterKey) =>
   params.get(key)?.split(",").filter(Boolean) ?? [];
 
+const readSort = (params: URLSearchParams): Sort => {
+  const sort = params.get("sort");
+  return SORT_OPTIONS.some((o) => o.value === sort)
+    ? (sort as Sort)
+    : "name-asc";
+};
+
+// Loads products for a URL query string (the useAsyncData key)
+const loadShopProducts = (query: string) => {
+  const params = new URLSearchParams(query);
+  return getFilteredProducts({
+    categories: readList(params, "category"),
+    brands: readList(params, "brand"),
+    priceRanges: readList(params, "price")
+      .map(parsePriceRange)
+      .filter((range) => range !== null),
+    sort: readSort(params),
+  });
+};
+
 interface Props {
   categories: Category[];
-  brands: BRANDS_QUERYResult;
+  brands: BRANDS_QUERY_RESULT;
 }
 const Shop = ({ categories, brands }: Props) => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const [products, setProducts] = useState<CatalogProduct[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, loading } = useAsyncData(
+    searchParams.toString(),
+    loadShopProducts,
+  );
+  const products = data ?? [];
 
   const selectedCategories = readList(searchParams, "category");
   const selectedBrands = readList(searchParams, "brand");
   const selectedPrices = readList(searchParams, "price");
-  const sortParam = searchParams.get("sort");
-  const sort: Sort = SORT_OPTIONS.some((o) => o.value === sortParam)
-    ? (sortParam as Sort)
-    : "name-asc";
+  const sort = readSort(searchParams);
   const hasFilters =
     selectedCategories.length > 0 ||
     selectedBrands.length > 0 ||
@@ -93,35 +113,6 @@ const Shop = ({ categories, brands }: Props) => {
       const next = typeof action === "function" ? action(current) : action;
       updateParams({ [key]: next.join(",") || null });
     };
-
-  const filterKey = searchParams.toString();
-  useEffect(() => {
-    const params = new URLSearchParams(filterKey);
-    const filters: ProductFilters = {
-      categories: readList(params, "category"),
-      brands: readList(params, "brand"),
-      priceRanges: readList(params, "price")
-        .map(parsePriceRange)
-        .filter((range) => range !== null),
-      sort,
-    };
-    let cancelled = false;
-    setLoading(true);
-    getFilteredProducts(filters)
-      .then((data) => {
-        if (!cancelled) setProducts(data);
-      })
-      .catch((error) => {
-        console.error("Shop product fetching error", error);
-        if (!cancelled) setProducts([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [filterKey, sort]);
 
   const filterLists = (
     <>

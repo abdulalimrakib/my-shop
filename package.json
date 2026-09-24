@@ -7,25 +7,26 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typegen": "sanity schema extract && sanity typegen generate"
+    "typegen": "sanity schema extract --force && sanity typegen generate"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.39.7",
-    "@sanity/image-url": "^1.1.0",
-    "@sanity/vision": "^3.80.1",
+    "@sanity/icons": "^5.2.2",
+    "@sanity/image-url": "^2.1.1",
+    "@sanity/vision": "^6.16.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "dayjs": "^1.11.13",
     "lucide-react": "^0.477.0",
     "motion": "^12.6.0",
-    "next": "^15.5.26",
-    "next-sanity": "^9.9.5",
+    "next": "^16.3.6",
+    "next-sanity": "^13.3.4",
     "radix-ui": "^1.6.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
-    "sanity": "^3.80.1",
+    "sanity": "^6.16.0",
     "server-only": "^0.0.1",
     "stripe": "^18.0.0",
     "styled-components": "^6.1.16",
@@ -34,14 +35,25 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.7",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "^15.5.26",
+    "eslint-config-next": "^16.3.6",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@module-federation/dts-plugin": {
+      "adm-zip": "^0.6.1"
+    },
+    "@vercel/frameworks": {
+      "js-yaml": "^3.15.2",
+      "smol-toml": "^1.9.0"
+    },
+    "typeid-js": {
+      "uuid": "^11.1.1"
+    }
   }
 }

@@ -1,7 +1,8 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// Pages that only make sense for a signed-in user. The pages also check
-// auth themselves; this makes sure a new page under these paths is covered too.
+// Next 16 "proxy" (formerly middleware). Protects pages that only make sense
+// for a signed-in user. The pages also check auth themselves; this makes sure
+// a new page under these paths is covered too.
 const isProtectedRoute = createRouteMatcher(["/orders(.*)", "/success(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
