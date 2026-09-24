@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { headerData } from "@/constants/data";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SignedIn } from "@clerk/nextjs";
 import SocialMedia from "./SocialMedia";
 import {
   SheetClose,
@@ -44,6 +45,18 @@ const SideMenu = () => {
             </Link>
           </SheetClose>
         ))}
+        <SignedIn>
+          <SheetClose asChild>
+            <Link
+              href="/orders"
+              className={`hover:text-shop_light_green hoverEffect ${
+                pathname === "/orders" && "text-white"
+              }`}
+            >
+              My Orders
+            </Link>
+          </SheetClose>
+        </SignedIn>
       </div>
       <SocialMedia />
     </SheetContent>

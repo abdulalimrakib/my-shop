@@ -42,7 +42,8 @@ const HeaderAccount = () => {
         <Link
           href={"/orders"}
           aria-label={`Orders, ${orderCount ?? 0}`}
-          className="group relative hover:text-shop_light_green hoverEffect"
+          // On phones the Orders link lives in the side menu to keep the header narrow
+          className="group relative hidden sm:inline-flex hover:text-shop_light_green hoverEffect"
         >
           <Logs />
           <Badge className="absolute -top-1 -right-1 h-3.5 min-w-3.5 px-0.5 bg-shop_btn_dark_green text-white text-xs font-semibold tabular-nums">
