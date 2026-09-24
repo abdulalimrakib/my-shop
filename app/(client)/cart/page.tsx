@@ -181,9 +181,9 @@ const CartPage = () => {
                       return (
                         <div
                           key={product?._id}
-                          className="border-b p-2.5 last:border-b-0 flex items-center justify-between gap-5"
+                          className="border-b p-2.5 last:border-b-0 flex items-start justify-between gap-3 md:gap-5"
                         >
-                          <div className="flex flex-1 items-start gap-2 h-36 md:h-44">
+                          <div className="flex flex-1 min-w-0 items-start gap-2 min-h-28 md:h-44">
                             {product?.images && (
                               <Link
                                 href={`/product/${product?.slug?.current}`}
@@ -196,11 +196,11 @@ const CartPage = () => {
                                   width={500}
                                   height={500}
                                   loading="lazy"
-                                  className="w-32 md:w-40 h-32 md:h-40 object-cover group-hover:scale-105 hoverEffect"
+                                  className="w-20 sm:w-32 md:w-40 h-20 sm:h-32 md:h-40 object-contain group-hover:scale-105 hoverEffect"
                                 />
                               </Link>
                             )}
-                            <div className="h-full flex flex-1 flex-col justify-between py-1">
+                            <div className="h-full flex flex-1 min-w-0 flex-col justify-between gap-2 py-1">
                               <div className="flex flex-col gap-0.5 md:gap-1.5">
                                 <h2 className="text-base font-semibold line-clamp-1">
                                   {product?.name}
@@ -256,7 +256,7 @@ const CartPage = () => {
                               </div>
                             </div>
                           </div>
-                          <div className="flex flex-col items-start justify-between h-36 md:h-44 p-0.5 md:p-1">
+                          <div className="flex flex-col items-end justify-between gap-3 self-stretch min-h-28 md:h-44 p-0.5 md:p-1">
                             <PriceFormatter
                               amount={(product?.price as number) * itemCount}
                               className="font-bold text-lg"

@@ -10,8 +10,9 @@ interface Props {
 
 const HomeTabbar = ({ selectedTab, onTabSelect }: Props) => {
   return (
-    <div className="flex items-center flex-wrap gap-5 justify-between">
-      <div className="flex items-center gap-1.5 md:gap-3 text-sm font-semibold">
+    <div className="flex items-center gap-3 justify-between">
+      {/* Scrolls sideways on narrow screens instead of overflowing the page */}
+      <div className="flex min-w-0 items-center gap-1.5 md:gap-3 text-sm font-semibold overflow-x-auto scrollbar-hide -mx-1 px-1 py-1">
         {productType?.map((item) => (
           <Button
             key={item?.title}
@@ -19,7 +20,7 @@ const HomeTabbar = ({ selectedTab, onTabSelect }: Props) => {
             onClick={() => onTabSelect(item?.title)}
             aria-pressed={selectedTab === item?.title}
             className={cn(
-              "h-auto rounded-full border-shop_light_green/30 px-4 py-1.5 md:px-6 md:py-2 font-semibold shadow-none hover:bg-shop_light_green hover:border-shop_light_green hover:text-white hoverEffect",
+              "h-auto shrink-0 rounded-full border-shop_light_green/30 px-4 py-1.5 md:px-6 md:py-2 font-semibold shadow-none hover:bg-shop_light_green hover:border-shop_light_green hover:text-white hoverEffect",
               selectedTab === item?.title
                 ? "bg-shop_light_green text-white border-shop_light_green"
                 : "bg-shop_light_green/10"
@@ -32,7 +33,7 @@ const HomeTabbar = ({ selectedTab, onTabSelect }: Props) => {
       <Button
         asChild
         variant="outline"
-        className="h-auto rounded-full border-darkColor bg-transparent px-4 py-1 font-normal shadow-none hover:bg-shop_light_green hover:text-white hover:border-shop_light_green hoverEffect"
+        className="h-auto shrink-0 rounded-full border-darkColor bg-transparent px-4 py-1 font-normal shadow-none hover:bg-shop_light_green hover:text-white hover:border-shop_light_green hoverEffect"
       >
         <Link href={"/shop"}>See all</Link>
       </Button>

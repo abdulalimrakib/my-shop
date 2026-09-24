@@ -94,7 +94,7 @@ const SearchBar = () => {
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <button aria-label="Search products">
+        <button aria-label="Search products" className="p-1 -m-1">
           <Search className="w-5 h-5 hover:text-shop_light_green hoverEffect" />
         </button>
       </DialogTrigger>

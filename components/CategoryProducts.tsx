@@ -25,8 +25,11 @@ const CategoryProducts = ({ categories, slug: currentSlug }: Props) => {
   };
 
   return (
-    <div className="py-5 flex flex-col md:flex-row items-start gap-5">
-      <div className="flex flex-col md:min-w-40 border">
+    <div className="py-5 flex flex-col md:flex-row md:items-start gap-5">
+      <nav
+        aria-label="Categories"
+        className="flex md:flex-col gap-2 md:gap-0 overflow-x-auto scrollbar-hide md:overflow-visible md:min-w-40 md:border -mx-4 px-4 md:mx-0 md:px-0"
+      >
         {categories?.map((item) => (
           <Button
             onClick={() => handleCategoryChange(item?.slug?.current as string)}
@@ -34,13 +37,13 @@ const CategoryProducts = ({ categories, slug: currentSlug }: Props) => {
             aria-current={
               item?.slug?.current === currentSlug ? "page" : undefined
             }
-            className={`bg-transparent border-0 p-0  rounded-none text-darkColor shadow-none hover:bg-shop_orange hover:text-white font-semibold hoverEffect border-b last:border-b-0 transition-colors capitalize ${item?.slug?.current === currentSlug && "bg-shop_orange text-white border-shop_orange"}`}
+            className={`shrink-0 bg-transparent p-0 text-darkColor shadow-none hover:bg-shop_orange hover:text-white font-semibold hoverEffect transition-colors capitalize rounded-full border border-darkColor/15 md:rounded-none md:border-0 md:border-b md:last:border-b-0 ${item?.slug?.current === currentSlug ? "bg-shop_orange text-white border-shop_orange" : ""}`}
           >
-            <p className="w-full text-left px-2">{item?.title}</p>
+            <span className="w-full text-left px-3 md:px-2">{item?.title}</span>
           </Button>
         ))}
-      </div>
-      <div className="flex-1">
+      </nav>
+      <div className="flex-1 min-w-0 w-full">
         {loading ? (
           <ProductGridSkeleton className="md:grid-cols-3 lg:grid-cols-5" />
         ) : products?.length > 0 ? (

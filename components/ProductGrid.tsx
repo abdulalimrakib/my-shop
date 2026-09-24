@@ -6,7 +6,6 @@ import ProductCard from "./ProductCard";
 import { motion, AnimatePresence } from "motion/react";
 import { getProductsByVariant } from "@/actions/catalog";
 import NoProductAvailable from "./NoProductAvailable";
-import Container from "./Container";
 import HomeTabbar from "./HomeTabbar";
 import { productType } from "@/constants/data";
 import ProductGridSkeleton from "./ProductCardSkeleton";
@@ -17,7 +16,7 @@ const ProductGrid = () => {
   const products = data ?? [];
 
   return (
-    <Container className="flex flex-col lg:px-0 my-10">
+    <div className="flex flex-col my-10">
       <HomeTabbar selectedTab={selectedTab} onTabSelect={setSelectedTab} />
       {loading ? (
         <ProductGridSkeleton className="sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 mt-10" />
@@ -41,7 +40,7 @@ const ProductGrid = () => {
       ) : (
         <NoProductAvailable selectedTab={selectedTab} />
       )}
-    </Container>
+    </div>
   );
 };
 
