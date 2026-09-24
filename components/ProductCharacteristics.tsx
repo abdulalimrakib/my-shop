@@ -1,5 +1,6 @@
-import { Product } from "@/sanity.types";
-import { getBrand } from "@/sanity/queries";
+import { CatalogProduct } from "@/types";
+import { isOutOfStock } from "@/lib/stock";
+import Link from "next/link";
 import React from "react";
 import {
   Accordion,
@@ -8,41 +9,48 @@ import {
   AccordionTrigger,
 } from "./ui/accordion";
 
-const ProductCharacteristics = async ({
+const ProductCharacteristics = ({
   product,
 }: {
-  product: Product | null | undefined;
+  product:
+    | (CatalogProduct & { brandName?: string | null; brandSlug?: string | null })
+    | null
+    | undefined;
 }) => {
-  const brand = await getBrand(product?.slug?.current as string);
-  console.log(brand);
-
   return (
     <Accordion type="single" collapsible>
       <AccordionItem value="item-1">
         <AccordionTrigger>{product?.name}: Characteristics</AccordionTrigger>
-        <AccordionContent>
-          <p className="flex items-center justify-between">
-            Brand:{" "}
-            {brand && (
-              <span className="font-semibold tracking-wide">
-                {brand[0]?.brandName}
+        <AccordionContent className="space-y-1">
+          {product?.brandName && (
+            <p className="flex items-center justify-between">
+              Brand:{" "}
+              {product.brandSlug ? (
+                <Link
+                  href={`/brand/${product.brandSlug}`}
+                  className="font-semibold tracking-wide hover:text-shop_dark_green hoverEffect"
+                >
+                  {product.brandName}
+                </Link>
+              ) : (
+                <span className="font-semibold tracking-wide">
+                  {product.brandName}
+                </span>
+              )}
+            </p>
+          )}
+          {product?.variant && (
+            <p className="flex items-center justify-between">
+              Type:{" "}
+              <span className="font-semibold tracking-wide capitalize">
+                {product.variant}
               </span>
-            )}
-          </p>
-          <p className="flex items-center justify-between">
-            Collection:{" "}
-            <span className="font-semibold tracking-wide">2025</span>
-          </p>
-          <p className="flex items-center justify-between">
-            Type:{" "}
-            <span className="font-semibold tracking-wide">
-              {product?.variant}
-            </span>
-          </p>
+            </p>
+          )}
           <p className="flex items-center justify-between">
             Stock:{" "}
             <span className="font-semibold tracking-wide">
-              {product?.stock ? "Available" : "Out of Stock"}
+              {isOutOfStock(product) ? "Out of Stock" : "Available"}
             </span>
           </p>
         </AccordionContent>

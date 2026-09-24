@@ -1,4 +1,4 @@
-import { twMerge } from "tailwind-merge";
+import { cn } from "@/lib/utils";
 
 interface Props {
   amount: number | undefined;
@@ -13,7 +13,7 @@ const PriceFormatter = ({ amount, className }: Props) => {
   });
   return (
     <span
-      className={twMerge("text-sm font-semibold text-darkColor", className)}
+      className={cn("text-sm font-semibold text-darkColor", className)}
     >
       {formattedPrice}
     </span>

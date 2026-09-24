@@ -38,13 +38,16 @@ export const productType = defineType({
       name: "price",
       title: "Price",
       type: "number",
+      description: "The price the customer pays (after any discount)",
       validation: (Rule) => Rule.required().min(0),
     }),
     defineField({
       name: "discount",
-      title: "Discount",
+      title: "Discount (%)",
       type: "number",
-      validation: (Rule) => Rule.required().min(0),
+      description:
+        "Percentage already taken off the original price, e.g. 20 shows the original price crossed out",
+      validation: (Rule) => Rule.required().min(0).max(99),
     }),
     defineField({
       name: "categories",

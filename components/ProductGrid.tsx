@@ -3,36 +3,35 @@
 import React, { useEffect, useState } from "react";
 import ProductCard from "./ProductCard";
 import { motion, AnimatePresence } from "motion/react";
-import { client } from "@/sanity/lib/client";
+import { getProductsByVariant } from "@/actions/catalog";
 import NoProductAvailable from "./NoProductAvailable";
 import Container from "./Container";
 import HomeTabbar from "./HomeTabbar";
 import { productType } from "@/constants/data";
-import { Product } from "@/sanity.types";
+import { CatalogProduct } from "@/types";
 import ProductGridSkeleton from "./ProductCardSkeleton";
 
 const ProductGrid = () => {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTab, setSelectedTab] = useState(productType[0]?.title || "");
-  const query = `*[_type == "product" && variant == $variant] | order(name asc){
-  ...,"categories": categories[]->title
-}`;
-  const params = { variant: selectedTab.toLowerCase() };
-
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const response = await client.fetch(query, params);
-        setProducts(await response);
-      } catch (error) {
-        console.log("Product fetching Error", error);
-      } finally {
-        setLoading(false);
-      }
+    let cancelled = false;
+    setLoading(true);
+    getProductsByVariant(selectedTab)
+      .then((data) => {
+        if (!cancelled) setProducts(data);
+      })
+      .catch((error) => {
+        console.error("Product fetching error", error);
+        if (!cancelled) setProducts([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
     };
-    fetchData();
   }, [selectedTab]);
 
   return (

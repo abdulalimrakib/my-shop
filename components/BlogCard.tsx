@@ -31,10 +31,11 @@ const BlogCard = ({
       {blog?.mainImage && (
         <Link href={href} className="overflow-hidden">
           <Image
-            src={urlFor(blog?.mainImage).url()}
-            alt="blogImage"
+            src={urlFor(blog?.mainImage).width(800).url()}
+            alt={blog?.title ?? "Blog post image"}
             width={500}
             height={500}
+            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
             className="w-full max-h-80 object-cover group-hover:scale-105 hoverEffect"
           />
         </Link>

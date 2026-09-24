@@ -1,12 +1,12 @@
 import React from "react";
 import Title from "./Title";
-import { Category } from "@/sanity.types";
+import { CATEGORIES_QUERYResult } from "@/sanity.types";
 import Image from "next/image";
 import { urlFor } from "@/sanity/lib/image";
 import Link from "next/link";
 import { Card, CardContent } from "./ui/card";
 
-const HomeCategories = ({ categories }: { categories: Category[] }) => {
+const HomeCategories = ({ categories }: { categories: CATEGORIES_QUERYResult }) => {
   return (
     <div className="bg-white border border-shop_light_green/20 my-10 md:my-20 p-5 lg:p-7 rounded-md">
       <Title className="border-b pb-3">Popular Categories</Title>
@@ -22,10 +22,10 @@ const HomeCategories = ({ categories }: { categories: Category[] }) => {
                 {category?.image && (
                   <div className="overflow-hidden border border-shop_orange/30 group-hover:border-shop_orange hoverEffect w-20 h-20 p-1">
                     <Image
-                      src={urlFor(category?.image).url()}
-                      alt="categoryImage"
-                      width={500}
-                      height={500}
+                      src={urlFor(category?.image).width(160).url()}
+                      alt={category?.title ?? "Category"}
+                      width={80}
+                      height={80}
                       className="w-full h-full object-contain group-hover:scale-110 hoverEffect"
                     />
                   </div>

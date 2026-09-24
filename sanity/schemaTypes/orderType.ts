@@ -76,13 +76,19 @@ export const orderType = defineType({
               title: "Quantity Purchased",
               type: "number",
             }),
+            defineField({
+              name: "price",
+              title: "Unit Price Paid",
+              type: "number",
+              description: "Price per unit at the time of purchase",
+            }),
           ],
           preview: {
             select: {
               product: "product.name",
               quantity: "quantity",
-              image: "product.image",
-              price: "product.price",
+              image: "product.images.0",
+              price: "price",
               currency: "product.currency",
             },
             prepare(select) {

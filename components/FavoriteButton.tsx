@@ -1,5 +1,5 @@
 "use client";
-import { Product } from "@/sanity.types";
+import { CatalogProduct } from "@/types";
 import useStore from "@/store";
 import { Heart } from "lucide-react";
 import Link from "next/link";
@@ -13,10 +13,10 @@ const FavoriteButton = ({
   product,
 }: {
   showProduct?: boolean;
-  product?: Product | null | undefined;
+  product?: CatalogProduct | null | undefined;
 }) => {
   const { favoriteProduct, addToFavorite } = useStore();
-  const [existingProduct, setExistingProduct] = useState<Product | null>(null);
+  const [existingProduct, setExistingProduct] = useState<CatalogProduct | null>(null);
   useEffect(() => {
     const availableItem = favoriteProduct.find(
       (item) => item?._id === product?._id,
@@ -39,7 +39,11 @@ const FavoriteButton = ({
   return (
     <>
       {!showProduct ? (
-        <Link href={"/wishlist"} className="group relative">
+        <Link
+          href={"/wishlist"}
+          aria-label={`Wishlist, ${favoriteProduct?.length ?? 0} items`}
+          className="group relative"
+        >
           <Heart className="w-5 h-5 hover:text-shop_light_green hoverEffect" />
           <Badge className="absolute -top-1 -right-1 h-3.5 min-w-3.5 px-0.5 bg-shop_dark_green text-white text-xs font-semibold tabular-nums">
             {favoriteProduct?.length ? favoriteProduct?.length : 0}

@@ -1,9 +1,8 @@
-import React from "react";
+import React, { useId } from "react";
 import { Checkbox } from "../ui/checkbox";
 import { Label } from "../ui/label";
 
 interface Props {
-  id: string;
   value: string;
   label?: string;
   selected: string[];
@@ -11,14 +10,16 @@ interface Props {
 }
 
 // A checkbox that adds/removes its value from a multi-select filter
-const FilterOption = ({ id, value, label, selected, setSelected }: Props) => {
+const FilterOption = ({ value, label, selected, setSelected }: Props) => {
+  // Generated so the same list can render twice (sidebar + mobile sheet)
+  const id = useId();
   const isSelected = selected.includes(value);
 
   const toggle = () =>
     setSelected((prev) =>
       prev.includes(value)
         ? prev.filter((item) => item !== value)
-        : [...prev, value]
+        : [...prev, value],
     );
 
   return (

@@ -1,9 +1,8 @@
 "use client";
 
-import {
-  createCheckoutSession,
-  Metadata,
-} from "@/actions/createCheckoutSession";
+import { createCheckoutSession } from "@/actions/createCheckoutSession";
+import { getMyAddresses, UserAddress } from "@/actions/address";
+import AddressDialog from "@/components/AddressDialog";
 import Container from "@/components/Container";
 import EmptyCart from "@/components/EmptyCart";
 import NoAccess from "@/components/NoAccess";
@@ -39,11 +38,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Spinner } from "@/components/ui/spinner";
-import { Address } from "@/sanity.types";
-import { client } from "@/sanity/lib/client";
 import { urlFor } from "@/sanity/lib/image";
 import useStore from "@/store";
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useAuth } from "@clerk/nextjs";
 import { ShoppingBag, Trash } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -58,59 +55,72 @@ const CartPage = () => {
     getSubTotalPrice,
     resetCart,
   } = useStore();
-  const [loading, setLoading] = useState(false);
+  const [checkingOut, setCheckingOut] = useState(false);
   const groupedItems = useStore((state) => state.getGroupedItems());
   const { isSignedIn } = useAuth();
-  const { user } = useUser();
-  const [addresses, setAddresses] = useState<Address[] | null>(null);
-  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+  const [addresses, setAddresses] = useState<UserAddress[] | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("");
 
-  const fetchAddresses = async () => {
-    setLoading(true);
-    try {
-      const query = `*[_type=="address"] | order(publishedAt desc)`;
-      const data = await client.fetch(query);
-      setAddresses(data);
-      const defaultAddress = data.find((addr: Address) => addr.default);
-      if (defaultAddress) {
-        setSelectedAddress(defaultAddress);
-      } else if (data.length > 0) {
-        setSelectedAddress(data[0]); // Optional: select first address if no default
-      }
-    } catch (error) {
-      console.log("Addresses fetching error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
   useEffect(() => {
-    fetchAddresses();
-  }, []);
+    if (!isSignedIn) return;
+    let cancelled = false;
+    getMyAddresses()
+      .then((data) => {
+        if (cancelled) return;
+        setAddresses(data);
+        // Addresses come back default-first
+        setSelectedAddressId((current) => current || data[0]?._id || "");
+      })
+      .catch((error) => {
+        console.error("Addresses fetching error:", error);
+        if (!cancelled) setAddresses([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isSignedIn]);
+
+  const handleAddressCreated = (address: UserAddress) => {
+    setAddresses((prev) => [
+      address,
+      ...(prev ?? []).map((a) =>
+        address.default ? { ...a, default: false } : a,
+      ),
+    ]);
+    setSelectedAddressId(address._id);
+  };
+
   const handleResetCart = () => {
     resetCart();
     toast.success("Cart reset successfully!");
   };
 
   const handleCheckout = async () => {
-    setLoading(true);
+    if (!selectedAddressId) {
+      toast.error("Please add or select a delivery address.");
+      return;
+    }
+    setCheckingOut(true);
     try {
-      const metadata: Metadata = {
-        orderNumber: crypto.randomUUID(),
-        customerName: user?.fullName ?? "Unknown",
-        customerEmail: user?.emailAddresses[0]?.emailAddress ?? "Unknown",
-        clerkUserId: user?.id,
-        address: selectedAddress,
-      };
-      const checkoutUrl = await createCheckoutSession(groupedItems, metadata);
-      if (checkoutUrl) {
-        window.location.href = checkoutUrl;
+      const result = await createCheckoutSession({
+        items: groupedItems.map(({ product, quantity }) => ({
+          productId: product._id,
+          quantity,
+        })),
+        addressId: selectedAddressId,
+      });
+      if (result.ok) {
+        window.location.href = result.url;
+        return; // keep the button disabled while the browser navigates
       }
+      toast.error(result.error);
     } catch (error) {
       console.error("Error creating checkout session:", error);
-    } finally {
-      setLoading(false);
+      toast.error("Couldn't start checkout. Please try again.");
     }
+    setCheckingOut(false);
   };
+
   const orderSummary = (className?: string) => (
     <Card className={className}>
       <CardHeader>
@@ -138,10 +148,10 @@ const CartPage = () => {
         <Button
           className="w-full rounded-full font-semibold tracking-wide hoverEffect"
           size="lg"
-          disabled={loading}
+          disabled={checkingOut || !selectedAddressId}
           onClick={handleCheckout}
         >
-          {loading ? (
+          {checkingOut ? (
             <>
               <Spinner /> Please wait...
             </>
@@ -154,14 +164,14 @@ const CartPage = () => {
   );
 
   return (
-    <div className="bg-gray-50 pb-72 md:pb-10">
+    <div className="bg-gray-50 pb-10">
       {isSignedIn ? (
         <Container>
           {groupedItems?.length ? (
             <>
               <div className="flex items-center gap-2 py-5">
                 <ShoppingBag className="text-darkColor" />
-                <Title>Shopping Cart</Title>
+                <Title as="h1">Shopping Cart</Title>
               </div>
               <div className="grid lg:grid-cols-3 md:gap-8">
                 <div className="lg:col-span-2 rounded-lg">
@@ -181,8 +191,8 @@ const CartPage = () => {
                                  overflow-hidden group"
                               >
                                 <Image
-                                  src={urlFor(product?.images[0]).url()}
-                                  alt="productImage"
+                                  src={urlFor(product?.images[0]).width(320).url()}
+                                  alt={product?.name ?? "Product image"}
                                   width={500}
                                   height={500}
                                   loading="lazy"
@@ -286,55 +296,61 @@ const CartPage = () => {
                     </AlertDialog>
                   </Card>
                 </div>
-                <div>
-                  <div className="lg:col-span-1">
-                    {orderSummary("hidden md:flex w-full bg-white")}
-                    {addresses && (
-                      <Card className="mt-5 bg-white">
-                        <CardHeader>
-                          <CardTitle>Delivery Address</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <RadioGroup
-                            defaultValue={addresses
-                              ?.find((addr) => addr.default)
-                              ?._id.toString()}
-                          >
-                            {addresses?.map((address) => (
-                              <div
-                                key={address?._id}
-                                onClick={() => setSelectedAddress(address)}
-                                className={`flex items-center space-x-2 mb-4 cursor-pointer ${selectedAddress?._id === address?._id && "text-shop_dark_green"}`}
+                <div className="lg:col-span-1 flex flex-col gap-5 mt-5 lg:mt-0">
+                  <Card className="bg-white">
+                    <CardHeader>
+                      <CardTitle>Delivery Address</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {addresses === null ? (
+                        <p className="flex items-center gap-2 text-sm text-lightColor">
+                          <Spinner /> Loading your addresses…
+                        </p>
+                      ) : addresses.length === 0 ? (
+                        <p className="text-sm text-lightColor">
+                          You haven&apos;t saved an address yet. Add one to
+                          check out.
+                        </p>
+                      ) : (
+                        <RadioGroup
+                          value={selectedAddressId}
+                          onValueChange={setSelectedAddressId}
+                          aria-label="Delivery address"
+                        >
+                          {addresses.map((address) => (
+                            <div
+                              key={address._id}
+                              className={`flex items-center space-x-2 mb-4 ${selectedAddressId === address._id ? "text-shop_dark_green" : ""}`}
+                            >
+                              <RadioGroupItem
+                                value={address._id}
+                                id={`address-${address._id}`}
+                              />
+                              <Label
+                                htmlFor={`address-${address._id}`}
+                                className="grid gap-1.5 flex-1 cursor-pointer"
                               >
-                                <RadioGroupItem
-                                  value={address?._id.toString()}
-                                />
-                                <Label
-                                  htmlFor={`address-${address?._id}`}
-                                  className="grid gap-1.5 flex-1"
-                                >
-                                  <span className="font-semibold">
-                                    {address?.name}
-                                  </span>
-                                  <span className="text-sm text-black/60">
-                                    {address.address}, {address.city},{" "}
-                                    {address.state} {address.zip}
-                                  </span>
-                                </Label>
-                              </div>
-                            ))}
-                          </RadioGroup>
-                          <Button variant="outline" className="w-full mt-4">
-                            Add New Address
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </div>
-                </div>
-                {/* Order summary for mobile view */}
-                <div className="md:hidden fixed bottom-0 left-0 w-full bg-white pt-2 z-10">
-                  {orderSummary("mx-4 mb-2 gap-3 py-4 bg-white")}
+                                <span className="font-semibold">
+                                  {address.name}
+                                  {address.default && (
+                                    <span className="ml-2 text-xs font-normal text-lightColor">
+                                      (Default)
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="text-sm text-black/60">
+                                  {address.address}, {address.city},{" "}
+                                  {address.state} {address.zip}
+                                </span>
+                              </Label>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      )}
+                      <AddressDialog onCreated={handleAddressCreated} />
+                    </CardContent>
+                  </Card>
+                  {orderSummary("w-full bg-white")}
                 </div>
               </div>
             </>

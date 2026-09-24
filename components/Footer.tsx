@@ -4,12 +4,13 @@ import FooterTop from "./FooterTop";
 import Logo from "./Logo";
 import SocialMedia from "./SocialMedia";
 import { SubText, SubTitle } from "./ui/text";
-import { categoriesData, quickLinksData } from "@/constants/data";
+import { quickLinksData } from "@/constants/data";
+import { getCategories } from "@/sanity/queries";
+import NewsletterForm from "./NewsletterForm";
 import Link from "next/link";
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
 
-const Footer = () => {
+const Footer = async () => {
+  const categories = await getCategories(7);
   return (
     <footer className="bg-white border-t">
       <Container>
@@ -18,8 +19,8 @@ const Footer = () => {
           <div className="space-y-4">
             <Logo />
             <SubText>
-              Discover curated furniture collections at MY SHOP, blending
-              style and comfort to elevate your living spaces.
+              Phones, gadgets and home appliances from trusted brands, delivered
+              to your door by MY SHOP.
             </SubText>
             <SocialMedia
               className="text-darkColor/60"
@@ -45,16 +46,18 @@ const Footer = () => {
           <div>
             <SubTitle>Categories</SubTitle>
             <ul className="space-y-3 mt-4">
-              {categoriesData?.map((item) => (
-                <li key={item?.title}>
-                  <Link
-                    href={`/category/${item?.href}`}
-                    className="hover:text-shop_light_green hoverEffect font-medium"
-                  >
-                    {item?.title}
-                  </Link>
-                </li>
-              ))}
+              {categories?.map(
+                (item) => (
+                  <li key={item?._id}>
+                    <Link
+                      href={`/category/${item?.slug?.current}`}
+                      className="hover:text-shop_light_green hoverEffect font-medium"
+                    >
+                      {item?.title}
+                    </Link>
+                  </li>
+                ),
+              )}
             </ul>
           </div>
           <div className="space-y-4">
@@ -63,10 +66,7 @@ const Footer = () => {
               Subscribe to our newsletter to receive updates and exclusive
               offers
             </SubText>
-            <form className="space-y-3">
-              <Input placeholder="Enter your email" type="email" required />
-              <Button className="w-full">Subscribe</Button>
-            </form>
+            <NewsletterForm />
           </div>
         </div>
         <div className="py-6 border-t text-center text-sm text-gray-600">

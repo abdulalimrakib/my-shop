@@ -33,7 +33,9 @@ const OrdersPage = async () => {
         {orders?.length ? (
           <Card className="w-full">
             <CardHeader>
-              <CardTitle>Order List</CardTitle>
+              <CardTitle>
+                <h1 className="text-xl">Your orders</h1>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <ScrollArea>
@@ -55,7 +57,7 @@ const OrdersPage = async () => {
                       <TableHead className="hidden sm:table-cell">
                         Invoice Number
                       </TableHead>
-                      <TableHead className="text-center">Action</TableHead>
+                      <TableHead className="text-center">Details</TableHead>
                     </TableRow>
                   </TableHeader>
                   <OrdersComponent orders={orders} />

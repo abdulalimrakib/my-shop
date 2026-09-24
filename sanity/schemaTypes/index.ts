@@ -8,6 +8,8 @@ import { blogType } from "./blogType";
 import { blogCategoryType } from "./blogCategoryType";
 import { authorType } from "./authorType";
 import { addressType } from "./addressType";
+import { subscriberType } from "./subscriberType";
+import { contactMessageType } from "./contactMessageType";
 
 export const schema: { types: SchemaTypeDefinition[] } = {
   types: [
@@ -20,5 +22,7 @@ export const schema: { types: SchemaTypeDefinition[] } = {
     blogCategoryType,
     authorType,
     addressType,
+    subscriberType,
+    contactMessageType,
   ],
 };

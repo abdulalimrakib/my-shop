@@ -1,7 +1,7 @@
 "use client";
 import { ShoppingCart } from "lucide-react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { emptyCart } from "@/images";
 import Image from "next/image";
 import { Card, CardContent, CardFooter } from "./ui/card";
