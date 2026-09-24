@@ -6,11 +6,15 @@ interface Props {
   price: number | undefined;
   discount: number | undefined;
   className?: string;
+  /** Classes for the row holding the price and the crossed-out price */
+  rowClassName?: string;
 }
-const PriceView = ({ price, discount, className }: Props) => {
+const PriceView = ({ price, discount, className, rowClassName }: Props) => {
   return (
     <div className="flex items-center justify-between gap-5">
-      <div className="flex flex-wrap items-baseline gap-x-2">
+      <div
+        className={cn("flex flex-wrap items-baseline gap-x-2", rowClassName)}
+      >
         <PriceFormatter
           amount={price}
           className={cn("text-shop_dark_green", className)}

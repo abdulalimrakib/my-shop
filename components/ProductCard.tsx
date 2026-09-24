@@ -14,7 +14,7 @@ import { isOutOfStock } from "@/lib/stock";
 
 const ProductCard = ({ product }: { product: CatalogProduct }) => {
   return (
-    <Card className="text-sm gap-0 py-0 rounded-md shadow-none group bg-white overflow-hidden hover:shadow-md hoverEffect">
+    <Card className="@container h-full text-sm gap-0 py-0 rounded-md shadow-none group bg-white overflow-hidden hover:shadow-md hoverEffect">
       <div className="relative group overflow-hidden bg-shop_light_bg">
         {product?.images && (
           <Link href={`/product/${product?.slug?.current}`}>
@@ -50,7 +50,7 @@ const ProductCard = ({ product }: { product: CatalogProduct }) => {
           </Link>
         )}
       </div>
-      <CardContent className="p-3 flex flex-col gap-2">
+      <CardContent className="p-3 flex flex-1 flex-col gap-2">
         {product?.categories && (
           <p className="uppercase line-clamp-1 text-xs font-medium text-lightColor">
             {product.categories.map((cat) => cat).join(", ")}
@@ -68,11 +68,14 @@ const ProductCard = ({ product }: { product: CatalogProduct }) => {
           price={product?.price}
           discount={product?.discount}
           className="text-sm"
+          rowClassName="flex-col flex-nowrap items-start min-h-10 @[11rem]:flex-row @[11rem]:items-baseline @[11rem]:min-h-5"
         />
-        <AddToCartButton
-          product={product}
-          className="w-full rounded-full px-2 has-[>svg]:px-2 text-xs sm:text-sm [&_svg]:hidden min-[360px]:[&_svg]:inline"
-        />
+        <div className="mt-auto">
+          <AddToCartButton
+            product={product}
+            className="w-full rounded-full px-2 has-[>svg]:px-2 text-xs sm:text-sm [&_svg]:hidden min-[360px]:[&_svg]:inline"
+          />
+        </div>
       </CardContent>
     </Card>
   );

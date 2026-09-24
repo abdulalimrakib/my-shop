@@ -50,7 +50,7 @@ const CategoryProducts = ({ categories, slug: currentSlug }: Props) => {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
             {products?.map((product) => (
               <AnimatePresence key={product._id}>
-                <motion.div>
+                <motion.div className="h-full">
                   <ProductCard product={product} />
                 </motion.div>
               </AnimatePresence>

@@ -26,6 +26,7 @@ const ProductGrid = () => {
             {products?.map((product) => (
               <AnimatePresence key={product?._id}>
                 <motion.div
+                  className="h-full"
                   layout
                   initial={{ opacity: 0.2 }}
                   animate={{ opacity: 1 }}
