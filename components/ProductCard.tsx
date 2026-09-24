@@ -69,7 +69,10 @@ const ProductCard = ({ product }: { product: CatalogProduct }) => {
           discount={product?.discount}
           className="text-sm"
         />
-        <AddToCartButton product={product} className="w-36 rounded-full" />
+        <AddToCartButton
+          product={product}
+          className="w-full rounded-full px-2 has-[>svg]:px-2 text-xs sm:text-sm [&_svg]:hidden min-[360px]:[&_svg]:inline"
+        />
       </CardContent>
     </Card>
   );
