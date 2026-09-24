@@ -8,9 +8,10 @@ import { useSearchParams } from "next/navigation";
 import BrandList from "./shop/BrandList";
 import PriceList from "./shop/PriceList";
 import { client } from "@/sanity/lib/client";
-import { Loader2 } from "lucide-react";
 import NoProductAvailable from "./NoProductAvailable";
 import ProductCard from "./ProductCard";
+import ProductGridSkeleton from "./ProductCardSkeleton";
+import { Button } from "./ui/button";
 
 interface Props {
   categories: Category[];
@@ -21,12 +22,12 @@ const Shop = ({ categories, brands }: Props) => {
   const brandParams = searchParams?.get("brand");
   const categoryParams = searchParams?.get("category");
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    categoryParams ? [categoryParams] : []
+    categoryParams ? [categoryParams] : [],
   );
   const [selectedBrands, setSelectedBrands] = useState<string[]>(
-    brandParams ? [brandParams] : []
+    brandParams ? [brandParams] : [],
   );
   const [selectedPrices, setSelectedPrices] = useState<string[]>([]);
   const fetchProducts = async () => {
@@ -54,7 +55,7 @@ const Shop = ({ categories, brands }: Props) => {
           brands: selectedBrands,
           priceRanges,
         },
-        { next: { revalidate: 0 } }
+        { next: { revalidate: 0 } },
       );
       setProducts(data);
     } catch (error) {
@@ -78,16 +79,17 @@ const Shop = ({ categories, brands }: Props) => {
             {(selectedCategories.length > 0 ||
               selectedBrands.length > 0 ||
               selectedPrices.length > 0) && (
-              <button
+              <Button
+                variant="link"
                 onClick={() => {
                   setSelectedCategories([]);
                   setSelectedBrands([]);
                   setSelectedPrices([]);
                 }}
-                className="text-shop_dark_green underline text-sm mt-2 font-medium hover:text-darkRed hoverEffect"
+                className="h-auto p-0 text-shop_dark_green underline text-sm mt-2 font-medium hover:text-darkRed hoverEffect"
               >
                 Reset Filters
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -111,12 +113,10 @@ const Shop = ({ categories, brands }: Props) => {
           <div className="flex-1 pt-5">
             <div className="h-[calc(100vh-160px)] overflow-y-auto pr-2 scrollbar-hide">
               {loading ? (
-                <div className="p-20 flex flex-col gap-2 items-center justify-center bg-white">
-                  <Loader2 className="w-10 h-10 text-shop_dark_green animate-spin" />
-                  <p className="font-semibold tracking-wide text-base">
-                    Product is loading . . .
-                  </p>
-                </div>
+                <ProductGridSkeleton
+                  count={8}
+                  className="md:grid-cols-3 lg:grid-cols-4"
+                />
               ) : products?.length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
                   {products?.map((product) => (

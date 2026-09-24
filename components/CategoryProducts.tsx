@@ -5,9 +5,9 @@ import React, { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { client } from "@/sanity/lib/client";
 import { AnimatePresence, motion } from "motion/react";
-import { Loader2 } from "lucide-react";
 import NoProductAvailable from "./NoProductAvailable";
 import ProductCard from "./ProductCard";
+import ProductGridSkeleton from "./ProductCardSkeleton";
 interface Props {
   categories: Category[];
   slug: string;
@@ -16,7 +16,7 @@ interface Props {
 const CategoryProducts = ({ categories, slug }: Props) => {
   const [currentSlug, setCurrentSlug] = useState(slug);
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
   const handleCategoryChange = (newSlug: string) => {
     if (newSlug === currentSlug) return; // Prevent unnecessary updates
@@ -59,12 +59,7 @@ const CategoryProducts = ({ categories, slug }: Props) => {
       </div>
       <div className="flex-1">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-10 min-h-80 space-y-4 text-center bg-gray-100 rounded-lg w-full">
-            <div className="flex items-center space-x-2 text-blue-600">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Product is loading...</span>
-            </div>
-          </div>
+          <ProductGridSkeleton className="md:grid-cols-3 lg:grid-cols-5" />
         ) : products?.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
             {products?.map((product: Product) => (

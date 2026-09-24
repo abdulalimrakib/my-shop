@@ -3,7 +3,7 @@
 import { Product } from "@/sanity.types";
 import { client } from "@/sanity/lib/client";
 import { urlFor } from "@/sanity/lib/image";
-import { Loader2, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
@@ -16,6 +16,7 @@ import {
 } from "./ui/dialog";
 import { Input } from "./ui/input";
 import PriceView from "./PriceView";
+import { Spinner } from "./ui/spinner";
 
 const SEARCH_QUERY = `*[_type == "product" && (
     name match $search
@@ -164,7 +165,7 @@ const SearchBar = () => {
         <div className="flex-1 overflow-y-auto border rounded-md">
           {loading ? (
             <p className="flex items-center justify-center gap-2 px-6 py-10 text-center text-shop_dark_green font-semibold">
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Spinner className="size-5" />
               Searching...
             </p>
           ) : products.length ? (

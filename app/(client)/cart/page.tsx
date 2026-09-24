@@ -12,16 +12,33 @@ import ProductSideMenu from "@/components/ProductSideMenu";
 import QuantityButtons from "@/components/QuantityButtons";
 import Title from "@/components/Title";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Spinner } from "@/components/ui/spinner";
 import { Address } from "@/sanity.types";
 import { client } from "@/sanity/lib/client";
 import { urlFor } from "@/sanity/lib/image";
@@ -70,13 +87,8 @@ const CartPage = () => {
     fetchAddresses();
   }, []);
   const handleResetCart = () => {
-    const confirmed = window.confirm(
-      "Are you sure you want to reset your cart?"
-    );
-    if (confirmed) {
-      resetCart();
-      toast.success("Cart reset successfully!");
-    }
+    resetCart();
+    toast.success("Cart reset successfully!");
   };
 
   const handleCheckout = async () => {
@@ -99,8 +111,50 @@ const CartPage = () => {
       setLoading(false);
     }
   };
+  const orderSummary = (className?: string) => (
+    <Card className={className}>
+      <CardHeader>
+        <CardTitle className="text-xl">Order Summary</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <span>SubTotal</span>
+          <PriceFormatter amount={getSubTotalPrice()} />
+        </div>
+        <div className="flex items-center justify-between">
+          <span>Discount</span>
+          <PriceFormatter amount={getSubTotalPrice() - getTotalPrice()} />
+        </div>
+        <Separator />
+        <div className="flex items-center justify-between font-semibold text-lg">
+          <span>Total</span>
+          <PriceFormatter
+            amount={getTotalPrice()}
+            className="text-lg font-bold text-black"
+          />
+        </div>
+      </CardContent>
+      <CardFooter>
+        <Button
+          className="w-full rounded-full font-semibold tracking-wide hoverEffect"
+          size="lg"
+          disabled={loading}
+          onClick={handleCheckout}
+        >
+          {loading ? (
+            <>
+              <Spinner /> Please wait...
+            </>
+          ) : (
+            "Proceed to Checkout"
+          )}
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+
   return (
-    <div className="bg-gray-50 pb-52 md:pb-10">
+    <div className="bg-gray-50 pb-72 md:pb-10">
       {isSignedIn ? (
         <Container>
           {groupedItems?.length ? (
@@ -111,7 +165,7 @@ const CartPage = () => {
               </div>
               <div className="grid lg:grid-cols-3 md:gap-8">
                 <div className="lg:col-span-2 rounded-lg">
-                  <div className="border bg-white rounded-md">
+                  <Card className="gap-0 py-0 rounded-md shadow-none bg-white">
                     {groupedItems?.map(({ product }) => {
                       const itemCount = getItemCount(product?._id);
                       return (
@@ -155,35 +209,40 @@ const CartPage = () => {
                                 </p>
                               </div>
                               <div className="flex items-center gap-2">
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span>
                                       <ProductSideMenu
                                         product={product}
                                         className="relative top-0 right-0"
                                       />
-                                    </TooltipTrigger>
-                                    <TooltipContent className="font-bold">
-                                      Add to Favorite
-                                    </TooltipContent>
-                                  </Tooltip>
-                                  <Tooltip>
-                                    <TooltipTrigger>
-                                      <Trash
-                                        onClick={() => {
-                                          deleteCartProduct(product?._id);
-                                          toast.success(
-                                            "Product deleted successfully!"
-                                          );
-                                        }}
-                                        className="w-4 h-4 md:w-5 md:h-5 mr-1 text-gray-500 hover:text-red-600 hoverEffect"
-                                      />
-                                    </TooltipTrigger>
-                                    <TooltipContent className="font-bold bg-red-600">
-                                      Delete product
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="font-bold">
+                                    Add to Favorite
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon-sm"
+                                      aria-label="Delete product"
+                                      onClick={() => {
+                                        deleteCartProduct(product?._id);
+                                        toast.success(
+                                          "Product deleted successfully!",
+                                        );
+                                      }}
+                                      className="text-gray-500 hover:text-red-600 hover:bg-red-50 hoverEffect"
+                                    >
+                                      <Trash className="w-4 h-4 md:w-5 md:h-5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent className="font-bold bg-red-600">
+                                    Delete product
+                                  </TooltipContent>
+                                </Tooltip>
                               </div>
                             </div>
                           </div>
@@ -197,128 +256,85 @@ const CartPage = () => {
                         </div>
                       );
                     })}
-                    <Button
-                      onClick={handleResetCart}
-                      className="m-5 font-semibold"
-                      variant="destructive"
-                    >
-                      Reset Cart
-                    </Button>
-                  </div>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          className="m-5 w-fit font-semibold"
+                          variant="destructive"
+                        >
+                          Reset Cart
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Reset your cart?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This removes every product from your cart. This
+                            can&apos;t be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleResetCart}
+                            className="bg-destructive text-white hover:bg-destructive/90"
+                          >
+                            Reset Cart
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </Card>
                 </div>
                 <div>
                   <div className="lg:col-span-1">
-                    <div className="hidden md:inline-block w-full bg-white p-6 rounded-lg border">
-                      <h2 className="text-xl font-semibold mb-4">
-                        Order Summary
-                      </h2>
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <span>SubTotal</span>
-                          <PriceFormatter amount={getSubTotalPrice()} />
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span>Discount</span>
-                          <PriceFormatter
-                            amount={getSubTotalPrice() - getTotalPrice()}
-                          />
-                        </div>
-                        <Separator />
-                        <div className="flex items-center justify-between font-semibold text-lg">
-                          <span>Total</span>
-                          <PriceFormatter
-                            amount={getTotalPrice()}
-                            className="text-lg font-bold text-black"
-                          />
-                        </div>
-                        <Button
-                          className="w-full rounded-full font-semibold tracking-wide hoverEffect"
-                          size="lg"
-                          disabled={loading}
-                          onClick={handleCheckout}
-                        >
-                          {loading ? "Please wait..." : "Proceed to Checkout"}
-                        </Button>
-                      </div>
-                    </div>
+                    {orderSummary("hidden md:flex w-full bg-white")}
                     {addresses && (
-                      <div className="bg-white rounded-md mt-5">
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Delivery Address</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <RadioGroup
-                              defaultValue={addresses
-                                ?.find((addr) => addr.default)
-                                ?._id.toString()}
-                            >
-                              {addresses?.map((address) => (
-                                <div
-                                  key={address?._id}
-                                  onClick={() => setSelectedAddress(address)}
-                                  className={`flex items-center space-x-2 mb-4 cursor-pointer ${selectedAddress?._id === address?._id && "text-shop_dark_green"}`}
+                      <Card className="mt-5 bg-white">
+                        <CardHeader>
+                          <CardTitle>Delivery Address</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <RadioGroup
+                            defaultValue={addresses
+                              ?.find((addr) => addr.default)
+                              ?._id.toString()}
+                          >
+                            {addresses?.map((address) => (
+                              <div
+                                key={address?._id}
+                                onClick={() => setSelectedAddress(address)}
+                                className={`flex items-center space-x-2 mb-4 cursor-pointer ${selectedAddress?._id === address?._id && "text-shop_dark_green"}`}
+                              >
+                                <RadioGroupItem
+                                  value={address?._id.toString()}
+                                />
+                                <Label
+                                  htmlFor={`address-${address?._id}`}
+                                  className="grid gap-1.5 flex-1"
                                 >
-                                  <RadioGroupItem
-                                    value={address?._id.toString()}
-                                  />
-                                  <Label
-                                    htmlFor={`address-${address?._id}`}
-                                    className="grid gap-1.5 flex-1"
-                                  >
-                                    <span className="font-semibold">
-                                      {address?.name}
-                                    </span>
-                                    <span className="text-sm text-black/60">
-                                      {address.address}, {address.city},{" "}
-                                      {address.state} {address.zip}
-                                    </span>
-                                  </Label>
-                                </div>
-                              ))}
-                            </RadioGroup>
-                            <Button variant="outline" className="w-full mt-4">
-                              Add New Address
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      </div>
+                                  <span className="font-semibold">
+                                    {address?.name}
+                                  </span>
+                                  <span className="text-sm text-black/60">
+                                    {address.address}, {address.city},{" "}
+                                    {address.state} {address.zip}
+                                  </span>
+                                </Label>
+                              </div>
+                            ))}
+                          </RadioGroup>
+                          <Button variant="outline" className="w-full mt-4">
+                            Add New Address
+                          </Button>
+                        </CardContent>
+                      </Card>
                     )}
                   </div>
                 </div>
                 {/* Order summary for mobile view */}
-                <div className="md:hidden fixed bottom-0 left-0 w-full bg-white pt-2">
-                  <div className="bg-white p-4 rounded-lg border mx-4">
-                    <h2>Order Summary</h2>
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span>SubTotal</span>
-                        <PriceFormatter amount={getSubTotalPrice()} />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>Discount</span>
-                        <PriceFormatter
-                          amount={getSubTotalPrice() - getTotalPrice()}
-                        />
-                      </div>
-                      <Separator />
-                      <div className="flex items-center justify-between font-semibold text-lg">
-                        <span>Total</span>
-                        <PriceFormatter
-                          amount={getTotalPrice()}
-                          className="text-lg font-bold text-black"
-                        />
-                      </div>
-                      <Button
-                        className="w-full rounded-full font-semibold tracking-wide hoverEffect"
-                        size="lg"
-                        disabled={loading}
-                        onClick={handleCheckout}
-                      >
-                        {loading ? "Please wait..." : "Proceed to Checkout"}
-                      </Button>
-                    </div>
-                  </div>
+                <div className="md:hidden fixed bottom-0 left-0 w-full bg-white pt-2 z-10">
+                  {orderSummary("mx-4 mb-2 gap-3 py-4 bg-white")}
                 </div>
               </div>
             </>

@@ -9,10 +9,12 @@ import PriceView from "./PriceView";
 import Title from "./Title";
 import ProductSideMenu from "./ProductSideMenu";
 import AddToCartButton from "./AddToCartButton";
+import { Card, CardContent } from "./ui/card";
+import { Badge } from "./ui/badge";
 
 const ProductCard = ({ product }: { product: Product }) => {
   return (
-    <div className="text-sm border-[1px] rounded-md border-darkBlue/20 group bg-white">
+    <Card className="text-sm gap-0 py-0 rounded-md shadow-none border-darkBlue/20 group bg-white overflow-hidden hover:shadow-md hoverEffect">
       <div className="relative group overflow-hidden bg-shop_light_bg">
         {product?.images && (
           <Link href={`/product/${product?.slug?.current}`}>
@@ -29,9 +31,12 @@ const ProductCard = ({ product }: { product: Product }) => {
         )}
         <ProductSideMenu product={product} />
         {product?.status === "sale" ? (
-          <p className="absolute top-2 left-2 z-10 text-xs border border-darkColor/50 px-2 rounded-full group-hover:border-lightGreen hover:text-shop_dark_green hoverEffect">
+          <Badge
+            variant="outline"
+            className="absolute top-2 left-2 z-10 bg-white border-darkColor/50 group-hover:border-shop_light_green hover:text-shop_dark_green hoverEffect"
+          >
             Sale!
-          </p>
+          </Badge>
         ) : (
           <Link
             href={"/deal"}
@@ -45,7 +50,7 @@ const ProductCard = ({ product }: { product: Product }) => {
           </Link>
         )}
       </div>
-      <div className="p-3 flex flex-col gap-2">
+      <CardContent className="p-3 flex flex-col gap-2">
         {product?.categories && (
           <p className="uppercase line-clamp-1 text-xs font-medium text-lightText">
             {product.categories.map((cat) => cat).join(", ")}
@@ -82,8 +87,8 @@ const ProductCard = ({ product }: { product: Product }) => {
           className="text-sm"
         />
         <AddToCartButton product={product} className="w-36 rounded-full" />
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

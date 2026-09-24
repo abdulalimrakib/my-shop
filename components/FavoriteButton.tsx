@@ -5,6 +5,8 @@ import { Heart } from "lucide-react";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 
 const FavoriteButton = ({
   showProduct = false,
@@ -17,19 +19,19 @@ const FavoriteButton = ({
   const [existingProduct, setExistingProduct] = useState<Product | null>(null);
   useEffect(() => {
     const availableItem = favoriteProduct.find(
-      (item) => item?._id === product?._id
+      (item) => item?._id === product?._id,
     );
     setExistingProduct(availableItem || null);
   }, [product, favoriteProduct]);
 
-  const handleFavorite = (e: React.MouseEvent<HTMLSpanElement>) => {
+  const handleFavorite = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     if (product?._id) {
       addToFavorite(product).then(() => {
         toast.success(
           existingProduct
             ? "Product removed successfully!"
-            : "Product added successfully!"
+            : "Product added successfully!",
         );
       });
     }
@@ -39,14 +41,20 @@ const FavoriteButton = ({
       {!showProduct ? (
         <Link href={"/wishlist"} className="group relative">
           <Heart className="w-5 h-5 hover:text-shop_light_green hoverEffect" />
-          <span className="absolute -top-1 -right-1 bg-shop_dark_green text-white h-3.5 w-3.5 rounded-full text-xs font-semibold flex items-center justify-center">
+          <Badge className="absolute -top-1 -right-1 h-3.5 min-w-3.5 px-0.5 bg-shop_dark_green text-white text-xs font-semibold tabular-nums">
             {favoriteProduct?.length ? favoriteProduct?.length : 0}
-          </span>
+          </Badge>
         </Link>
       ) : (
-        <button
+        <Button
+          variant="outline"
+          size="icon"
           onClick={handleFavorite}
-          className="group relative hover:text-shop_light_green hoverEffect border border-shop_light_green/80 hover:border-shop_light_green p-1.5 rounded-sm"
+          aria-label={
+            existingProduct ? "Remove from favorites" : "Add to favorites"
+          }
+          aria-pressed={!!existingProduct}
+          className="group relative size-auto bg-transparent shadow-none hover:bg-transparent hover:text-shop_light_green hoverEffect border-shop_light_green/80 hover:border-shop_light_green p-1.5 rounded-sm"
         >
           {existingProduct ? (
             <Heart
@@ -56,7 +64,7 @@ const FavoriteButton = ({
           ) : (
             <Heart className="text-shop_light_green/80 group-hover:text-shop_light_green hoverEffect mt-.5 w-5 h-5" />
           )}
-        </button>
+        </Button>
       )}
     </>
   );

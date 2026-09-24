@@ -1,55 +1,52 @@
-import React, { FC } from "react";
+import React from "react";
 import Logo from "./Logo";
 import { X } from "lucide-react";
 import { headerData } from "@/constants/data";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import SocialMedia from "./SocialMedia";
-import { useOutsideClick } from "@/hooks";
-interface SidebarProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+import {
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+} from "./ui/sheet";
 
-const SideMenu: FC<SidebarProps> = ({ isOpen, onClose }) => {
+// Rendered inside the <Sheet> owned by MobileMenu
+const SideMenu = () => {
   const pathname = usePathname();
-  const sidebarRef = useOutsideClick<HTMLDivElement>(onClose);
   return (
-    <div
-      className={`fixed inset-y-0 h-screen left-0 z-50 w-full bg-black/50 text-white/70 shadow-xl ${
-        isOpen ? "translate-x-0" : "-translate-x-full"
-      } hoverEffect`}
+    <SheetContent
+      side="left"
+      showCloseButton={false}
+      className="md:hidden w-full min-w-72 max-w-96 sm:max-w-96 bg-black text-white/70 p-10 border-r-shop_light_green gap-6"
     >
-      <div
-        ref={sidebarRef}
-        className="min-w-72 max-w-96 bg-black h-screen p-10 border-r border-r-shop_light_green flex flex-col gap-6"
-      >
-        <div className="flex items-center justify-between gap-5">
-          <Logo className="text-white" spanDesign="group-hover:text-white" />
-          <button
-            onClick={onClose}
-            className="hover:text-shop_light_green hoverEffect"
-          >
-            <X />
-          </button>
-        </div>
+      <SheetTitle className="sr-only">Menu</SheetTitle>
+      <SheetDescription className="sr-only">Site navigation</SheetDescription>
+      <div className="flex items-center justify-between gap-5">
+        <Logo className="text-white" spanDesign="group-hover:text-white" />
+        <SheetClose className="hover:text-shop_light_green hoverEffect">
+          <X />
+          <span className="sr-only">Close</span>
+        </SheetClose>
+      </div>
 
-        <div className="flex flex-col space-y-3.5 font-semibold tracking-wide">
-          {headerData?.map((item) => (
+      <div className="flex flex-col space-y-3.5 font-semibold tracking-wide">
+        {headerData?.map((item) => (
+          <SheetClose asChild key={item?.title}>
             <Link
               href={item?.href}
-              key={item?.title}
               className={`hover:text-shop_light_green hoverEffect ${
                 pathname === item?.href && "text-white"
               }`}
             >
               {item?.title}
             </Link>
-          ))}
-        </div>
-        <SocialMedia />
+          </SheetClose>
+        ))}
       </div>
-    </div>
+      <SocialMedia />
+    </SheetContent>
   );
 };
 

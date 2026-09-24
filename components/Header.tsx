@@ -12,6 +12,7 @@ import { ClerkLoaded, SignedIn, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { Logs } from "lucide-react";
 import { getMyOrders } from "@/sanity/queries";
+import { Badge } from "./ui/badge";
 
 const Header = async () => {
   const user = await currentUser();
@@ -40,9 +41,9 @@ const Header = async () => {
               className="group relative hover:text-shop_light_green hoverEffect"
             >
               <Logs />
-              <span className="absolute -top-1 -right-1 bg-shop_btn_dark_green text-white h-3.5 w-3.5 rounded-full text-xs font-semibold flex items-center justify-center">
+              <Badge className="absolute -top-1 -right-1 h-3.5 min-w-3.5 px-0.5 bg-shop_btn_dark_green text-white text-xs font-semibold tabular-nums">
                 {orders?.length ? orders?.length : 0}
-              </span>
+              </Badge>
             </Link>
           )}
 
