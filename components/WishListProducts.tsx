@@ -3,15 +3,17 @@
 import useStore from "@/store";
 import { useState } from "react";
 import Container from "./Container";
+import Title from "./Title";
 import { Heart, X } from "lucide-react";
 import { Button } from "./ui/button";
 import Link from "next/link";
-import { Product } from "@/sanity.types";
+import { CatalogProduct } from "@/types";
 import toast from "react-hot-toast";
 import Image from "next/image";
 import { urlFor } from "@/sanity/lib/image";
 import PriceFormatter from "./PriceFormatter";
 import AddToCartButton from "./AddToCartButton";
+import { isOutOfStock } from "@/lib/stock";
 import {
   Table,
   TableBody,
@@ -53,7 +55,10 @@ const WishListProducts = () => {
   };
 
   return (
-    <Container>
+    <Container className="py-5">
+      <Title as="h1" className="mb-5">
+        Your wishlist
+      </Title>
       {favoriteProduct?.length > 0 ? (
         <>
           <Table>
@@ -78,7 +83,7 @@ const WishListProducts = () => {
             <TableBody>
               {favoriteProduct
                 ?.slice(0, visibleProducts)
-                ?.map((product: Product) => (
+                ?.map((product: CatalogProduct) => (
                   <TableRow key={product?._id}>
                     <TableCell className="px-2 py-4 flex items-center gap-2 whitespace-normal">
                       <Button
@@ -99,8 +104,8 @@ const WishListProducts = () => {
                           className="border rounded-md group hidden md:inline-flex"
                         >
                           <Image
-                            src={urlFor(product?.images[0]).url()}
-                            alt={"product image"}
+                            src={urlFor(product?.images[0]).width(160).url()}
+                            alt={product?.name ?? "Product image"}
                             width={80}
                             height={80}
                             className="rounded-md group-hover:scale-105 hoverEffect h-20 w-20 object-contain"
@@ -121,14 +126,12 @@ const WishListProducts = () => {
                     </TableCell>
                     <TableCell
                       className={`p-2 w-24 ${
-                        (product?.stock as number) > 0
-                          ? "text-green-600"
-                          : "text-red-600"
+                        isOutOfStock(product)
+                          ? "text-red-600"
+                          : "text-green-600"
                       } font-medium text-sm hidden md:table-cell`}
                     >
-                      {(product?.stock as number) > 0
-                        ? "In Stock"
-                        : "Out of Stock"}
+                      {isOutOfStock(product) ? "Out of Stock" : "In Stock"}
                     </TableCell>
                     <TableCell className="p-2">
                       <PriceFormatter amount={product?.price} />

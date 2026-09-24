@@ -1,6 +1,6 @@
-import { twMerge } from "tailwind-merge";
 import { cn } from "@/lib/utils";
 import PriceFormatter from "./PriceFormatter";
+import { originalPrice } from "@/lib/price";
 
 interface Props {
   price: number | undefined;
@@ -15,15 +15,15 @@ const PriceView = ({ price, discount, className }: Props) => {
           amount={price}
           className={cn("text-shop_dark_green", className)}
         />
-        {price && discount && (
+        {price && discount ? (
           <PriceFormatter
-            amount={price + (discount * price) / 100}
-            className={twMerge(
+            amount={originalPrice(price, discount)}
+            className={cn(
               "line-through text-xs font-normal text-zinc-500",
               className
             )}
           />
-        )}
+        ) : null}
       </div>
     </div>
   );

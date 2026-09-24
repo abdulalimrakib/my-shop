@@ -1,12 +1,15 @@
 import React from "react";
-import { twMerge } from "tailwind-merge";
+import { cn } from "@/lib/utils";
 interface Props {
   children: React.ReactNode;
   className?: string;
+  as?: "h1" | "h2" | "h3";
 }
-const Title = ({ children, className }: Props) => {
+const Title = ({ children, className, as: Heading = "h2" }: Props) => {
   return (
-    <h2 className={twMerge("text-2xl font-semibold", className)}>{children}</h2>
+    <Heading className={cn("text-2xl font-semibold", className)}>
+      {children}
+    </Heading>
   );
 };
 

@@ -1,6 +1,13 @@
 import { defineQuery } from "next-sanity";
 
-const BRANDS_QUERY = defineQuery(`*[_type=='brand'] | order(name asc) `);
+const BRANDS_QUERY = defineQuery(`*[_type=='brand'] | order(title asc)`);
+
+const CATEGORIES_QUERY = defineQuery(
+  `*[_type == 'category'] | order(title asc) [0...$quantity] {
+    ...,
+    "productCount": count(*[_type == "product" && references(^._id)])
+  }`
+);
 
 const LATEST_BLOG_QUERY = defineQuery(
   ` *[_type == 'blog' && isLatest == true]|order(name asc){
@@ -18,27 +25,41 @@ const DEAL_PRODUCTS = defineQuery(
 );
 
 const PRODUCT_BY_SLUG_QUERY = defineQuery(
-  `*[_type == "product" && slug.current == $slug] | order(name asc) [0]`
+  `*[_type == "product" && slug.current == $slug][0]{
+    ...,
+    "brandName": brand->title,
+    "brandSlug": brand->slug.current
+  }`
 );
 
-const BRAND_QUERY = defineQuery(`*[_type == "product" && slug.current == $slug]{
-  "brandName": brand->title
-  }`);
+const BRAND_BY_SLUG_QUERY = defineQuery(
+  `*[_type == "brand" && slug.current == $slug][0]{
+    _id,
+    title,
+    description,
+    image,
+    "products": *[_type == "product" && references(^._id)] | order(name asc){
+      ...,"categories": categories[]->title
+    }
+  }`
+);
 
 const MY_ORDERS_QUERY =
-  defineQuery(`*[_type == 'order' && clerkUserId == $userId] | order(orderData desc){
+  defineQuery(`*[_type == 'order' && clerkUserId == $userId] | order(orderDate desc){
 ...,products[]{
   ...,product->
 }
 }`);
-const GET_ALL_BLOG = defineQuery(
-  `*[_type == 'blog'] | order(publishedAt desc)[0...$quantity]{
-  ...,  
-     blogcategories[]->{
-    title
-}
-    }
-  `
+const BLOGS_PAGE_QUERY = defineQuery(
+  `{
+    "blogs": *[_type == 'blog'] | order(publishedAt desc)[$start...$end]{
+      ...,
+      blogcategories[]->{
+        title
+      }
+    },
+    "total": count(*[_type == 'blog'])
+  }`
 );
 
 const SINGLE_BLOG_QUERY =
@@ -55,11 +76,11 @@ const SINGLE_BLOG_QUERY =
 }`);
 
 const BLOG_CATEGORIES = defineQuery(
-  `*[_type == "blog"]{
-     blogcategories[]->{
-    ...
-    }
-  }`
+  `*[_type == "blogcategory"] | order(title asc){
+    _id,
+    title,
+    "count": count(*[_type == "blog" && references(^._id)])
+  }[count > 0]`
 );
 
 const OTHERS_BLOG_QUERY = defineQuery(`*[
@@ -83,12 +104,13 @@ const OTHERS_BLOG_QUERY = defineQuery(`*[
 }`);
 export {
   BRANDS_QUERY,
+  CATEGORIES_QUERY,
   LATEST_BLOG_QUERY,
   DEAL_PRODUCTS,
   PRODUCT_BY_SLUG_QUERY,
-  BRAND_QUERY,
+  BRAND_BY_SLUG_QUERY,
   MY_ORDERS_QUERY,
-  GET_ALL_BLOG,
+  BLOGS_PAGE_QUERY,
   SINGLE_BLOG_QUERY,
   BLOG_CATEGORIES,
   OTHERS_BLOG_QUERY,

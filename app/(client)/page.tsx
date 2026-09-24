@@ -12,7 +12,10 @@ const Home = async () => {
   const categories = await getCategories(6);
 
   return (
-    <Container className="bg-shop-light-pink">
+    <Container>
+      <h1 className="sr-only">
+        MY SHOP: phones, gadgets and home appliances online
+      </h1>
       <HomeBanner />
       <ProductGrid />
       <HomeCategories categories={categories} />

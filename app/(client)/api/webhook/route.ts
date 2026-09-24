@@ -1,124 +1,138 @@
-import { Metadata } from "@/actions/createCheckoutSession";
+import { CheckoutMetadata } from "@/actions/createCheckoutSession";
 import stripe from "@/lib/stripe";
 import { backendClient } from "@/sanity/lib/backendClient";
-import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
-  const headersList = await headers();
-  const sig = headersList.get("stripe-signature");
-
+  const sig = req.headers.get("stripe-signature");
   if (!sig) {
-    return NextResponse.json(
-      { error: "No Signature found for stripe" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Missing signature" }, { status: 400 });
   }
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
-    console.log("Stripe webhook secret is not set");
-    return NextResponse.json(
-      {
-        error: "Stripe webhook secret is not set",
-      },
-      { status: 400 }
-    );
+    console.error("STRIPE_WEBHOOK_SECRET is not set");
+    return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
   }
+
   let event: Stripe.Event;
   try {
     event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
   } catch (error) {
     console.error("Webhook signature verification failed:", error);
-    return NextResponse.json(
-      {
-        error: `Webhook Error: ${error}`,
-      },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const invoice = session.invoice
-      ? await stripe.invoices.retrieve(session.invoice as string)
-      : null;
-
-    try {
-      await createOrderInSanity(session, invoice);
-    } catch (error) {
-      console.error("Error creating order in sanity:", error);
-      return NextResponse.json(
-        {
-          error: `Error creating order: ${error}`,
-        },
-        { status: 400 }
-      );
+  try {
+    switch (event.type) {
+      // Card payments arrive here already paid. Delayed payment methods
+      // arrive unpaid and are confirmed by async_payment_succeeded.
+      case "checkout.session.completed":
+      case "checkout.session.async_payment_succeeded": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        await recordOrder(session);
+        break;
+      }
+      case "checkout.session.async_payment_failed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        await backendClient
+          .patch(orderIdFor(session.id))
+          .set({ status: "cancelled" })
+          .commit()
+          .catch(() => undefined); // no order exists if it was never recorded
+        break;
+      }
     }
+  } catch (error) {
+    // A non-2xx response makes Stripe retry; recordOrder is idempotent
+    console.error(`Error handling Stripe event ${event.id}:`, error);
+    return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 });
   }
+
   return NextResponse.json({ received: true });
 }
 
-async function createOrderInSanity(
-  session: Stripe.Checkout.Session,
-  invoice: Stripe.Invoice | null
-) {
-  const {
-    id,
-    amount_total,
-    currency,
-    metadata,
-    payment_intent,
-    total_details,
-  } = session;
-  const { orderNumber, customerName, customerEmail, clerkUserId, address } =
-    metadata as unknown as Metadata & { address: string };
-  const parsedAddress = address ? JSON.parse(address) : null;
+// Deterministic id so retried or duplicate events map to the same order
+const orderIdFor = (sessionId: string) => `order-${sessionId}`;
 
-  const lineItemsWithProduct = await stripe.checkout.sessions.listLineItems(
-    id,
-    { expand: ["data.price.product"] }
-  );
+async function recordOrder(session: Stripe.Checkout.Session) {
+  const orderId = orderIdFor(session.id);
+  const isPaid = session.payment_status !== "unpaid";
 
-  // Create Sanity product references and prepare stock updates
-  const sanityProducts = [];
-  const stockUpdates = [];
-  for (const item of lineItemsWithProduct.data) {
-    const productId = (item.price?.product as Stripe.Product)?.metadata?.id;
-    const quantity = item?.quantity || 0;
-
-    if (!productId) continue;
-
-    sanityProducts.push({
-      _key: crypto.randomUUID(),
-      product: {
-        _type: "reference",
-        _ref: productId,
-      },
-      quantity,
-    });
-    stockUpdates.push({ productId, quantity });
+  const existing = await backendClient.getDocument<{ status?: string }>(orderId);
+  if (existing) {
+    // Already recorded (retry, or completed -> async_payment_succeeded)
+    if (isPaid && existing.status === "pending") {
+      await backendClient.patch(orderId).set({ status: "paid" }).commit();
+    }
+    return;
   }
-  //   Create order in Sanity
 
-  const order = await backendClient.create({
+  const { orderNumber, customerName, customerEmail, clerkUserId, addressId } =
+    (session.metadata ?? {}) as unknown as CheckoutMetadata;
+
+  const [lineItems, address, invoice] = await Promise.all([
+    stripe.checkout.sessions.listLineItems(session.id, {
+      expand: ["data.price.product"],
+      limit: 100,
+    }),
+    addressId
+      ? backendClient.fetch<{
+          name?: string;
+          address?: string;
+          city?: string;
+          state?: string;
+          zip?: string;
+        } | null>(
+          `*[_type == "address" && _id == $addressId][0]{name, address, city, state, zip}`,
+          { addressId }
+        )
+      : null,
+    session.invoice
+      ? stripe.invoices.retrieve(session.invoice as string)
+      : null,
+  ]);
+
+  const products = [];
+  const stockChanges = new Map<string, number>();
+  for (const item of lineItems.data) {
+    const productId = (item.price?.product as Stripe.Product)?.metadata?.id;
+    const quantity = item.quantity ?? 0;
+    if (!productId || quantity <= 0) continue;
+    products.push({
+      _key: crypto.randomUUID(),
+      product: { _type: "reference", _ref: productId },
+      quantity,
+      // What the customer actually paid per unit, after any discount
+      price: item.amount_total / quantity / 100,
+    });
+    stockChanges.set(productId, (stockChanges.get(productId) ?? 0) + quantity);
+  }
+
+  const stripeCustomerId =
+    typeof session.customer === "string"
+      ? session.customer
+      : session.customer?.id ?? "";
+
+  const transaction = backendClient.transaction().create({
+    _id: orderId,
     _type: "order",
     orderNumber,
-    stripeCheckoutSessionId: id,
-    stripePaymentIntentId: payment_intent,
+    stripeCheckoutSessionId: session.id,
+    stripePaymentIntentId:
+      typeof session.payment_intent === "string"
+        ? session.payment_intent
+        : session.payment_intent?.id,
+    stripeCustomerId,
     customerName,
-    stripeCustomerId: customerEmail,
-    clerkUserId: clerkUserId,
-    email: customerEmail,
-    currency,
-    amountDiscount: total_details?.amount_discount
-      ? total_details.amount_discount / 100
-      : 0,
-
-    products: sanityProducts,
-    totalPrice: amount_total ? amount_total / 100 : 0,
-    status: "paid",
+    clerkUserId,
+    email: customerEmail ?? session.customer_details?.email,
+    currency: session.currency,
+    amountDiscount: (session.total_details?.amount_discount ?? 0) / 100,
+    products,
+    totalPrice: (session.amount_total ?? 0) / 100,
+    status: isPaid ? "paid" : "pending",
     orderDate: new Date().toISOString(),
     invoice: invoice
       ? {
@@ -126,46 +140,35 @@ async function createOrderInSanity(
           number: invoice.number,
           hosted_invoice_url: invoice.hosted_invoice_url,
         }
-      : null,
-    address: parsedAddress
-      ? {
-          state: parsedAddress.state,
-          zip: parsedAddress.zip,
-          city: parsedAddress.city,
-          address: parsedAddress.address,
-          name: parsedAddress.name,
-        }
-      : null,
+      : undefined,
+    address: address ?? undefined,
   });
 
-  // Update stock levels in Sanity
+  // Only decrement products that track stock. `dec` is applied atomically by
+  // Sanity, so concurrent orders can't overwrite each other's changes.
+  const trackedIds: string[] = await backendClient.fetch(
+    `*[_type == "product" && _id in $ids && defined(stock)]._id`,
+    { ids: [...stockChanges.keys()] }
+  );
+  for (const productId of trackedIds) {
+    transaction.patch(productId, (patch) =>
+      patch.dec({ stock: stockChanges.get(productId) ?? 0 })
+    );
+  }
 
-  await updateStockLevels(stockUpdates);
-  return order;
-}
+  try {
+    await transaction.commit();
+  } catch (error) {
+    // A concurrent delivery of the same event created the order first
+    if ((error as { statusCode?: number }).statusCode === 409) return;
+    throw error;
+  }
 
-// Function to update stock levels
-async function updateStockLevels(
-  stockUpdates: { productId: string; quantity: number }[]
-) {
-  for (const { productId, quantity } of stockUpdates) {
-    try {
-      // Fetch current stock
-      const product = await backendClient.getDocument(productId);
-
-      if (!product || typeof product.stock !== "number") {
-        console.warn(
-          `Product with ID ${productId} not found or stock is invalid.`
-        );
-        continue;
-      }
-
-      const newStock = Math.max(product.stock - quantity, 0); // Ensure stock does not go negative
-
-      // Update stock in Sanity
-      await backendClient.patch(productId).set({ stock: newStock }).commit();
-    } catch (error) {
-      console.error(`Failed to update stock for product ${productId}:`, error);
-    }
+  const oversold: { name?: string; stock: number }[] = await backendClient.fetch(
+    `*[_type == "product" && _id in $ids && stock < 0]{name, stock}`,
+    { ids: trackedIds }
+  );
+  if (oversold.length) {
+    console.warn(`Order ${orderNumber} oversold products:`, oversold);
   }
 }

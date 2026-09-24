@@ -5,46 +5,87 @@ import ImageView from "@/components/ImageView";
 import PriceView from "@/components/PriceView";
 import ProductCharacteristics from "@/components/ProductCharacteristics";
 import { getProductBySlug } from "@/sanity/queries";
-import { CornerDownLeft, StarIcon, Truck } from "lucide-react";
+import { CornerDownLeft, Truck } from "lucide-react";
+import Link from "next/link";
+import ShareButton from "@/components/ShareButton";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import { urlFor } from "@/sanity/lib/image";
+import { siteConfig } from "@/constants/site";
 import React from "react";
+import { isOutOfStock } from "@/lib/stock";
 import { FaRegQuestionCircle } from "react-icons/fa";
-import { FiShare2 } from "react-icons/fi";
-import { RxBorderSplit } from "react-icons/rx";
 import { TbTruckDelivery } from "react-icons/tb";
 
-const SingleProductPage = async ({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) => {
+type Props = { params: Promise<{ slug: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await getProductBySlug(slug);
+  if (!product) return {};
+  const image = product.images?.[0]
+    ? urlFor(product.images[0]).width(1200).height(630).fit("fill").bg("ffffff").url()
+    : undefined;
+  return {
+    title: product.name,
+    description:
+      product.description ?? `Buy ${product.name} at ${siteConfig.name}.`,
+    alternates: { canonical: `/product/${slug}` },
+    openGraph: {
+      title: product.name,
+      description: product.description ?? undefined,
+      images: image ? [{ url: image, width: 1200, height: 630 }] : undefined,
+    },
+  };
+}
+
+const SingleProductPage = async ({ params }: Props) => {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product) {
     return notFound();
   }
+  // Structured data for search engines (no ratings: there are no real reviews yet)
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description,
+    image: product.images?.map((image) => urlFor(image).width(1200).url()),
+    brand: product.brandName
+      ? { "@type": "Brand", name: product.brandName }
+      : undefined,
+    offers: {
+      "@type": "Offer",
+      price: product.price,
+      priceCurrency: "USD",
+      availability: isOutOfStock(product)
+        ? "https://schema.org/OutOfStock"
+        : "https://schema.org/InStock",
+      url: `${siteConfig.url}/product/${slug}`,
+    },
+  };
   return (
     <Container className="flex flex-col md:flex-row gap-10 py-10">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
       {product?.images && (
-        <ImageView images={product?.images} isStock={product?.stock} />
+        <ImageView
+          images={product?.images}
+          isStock={product?.stock}
+          name={product?.name}
+        />
       )}
       <div className="w-full md:w-1/2 flex flex-col gap-5">
         <div className="space-y-1">
-          <h2 className="text-2xl font-bold">{product?.name}</h2>
+          <h1 className="text-2xl font-bold">{product?.name}</h1>
           <p className="text-sm text-gray-600 tracking-wide">
             {product?.description}
           </p>
-          <div className="flex items-center gap-0.5 text-xs">
-            {[...Array(5)].map((_, index) => (
-              <StarIcon
-                key={index}
-                size={12}
-                className="text-shop_light_green"
-                fill={"#3b9c3c"}
-              />
-            ))}
-            <p className="font-semibold">{`(120)`}</p>
-          </div>
         </div>
         <div className="space-y-2 border-t border-b border-gray-200 py-5">
           <PriceView
@@ -53,9 +94,9 @@ const SingleProductPage = async ({
             className="text-lg font-bold"
           />
           <p
-            className={`px-4 py-1.5 text-sm text-center inline-block font-semibold rounded-lg ${product?.stock === 0 ? "bg-red-100 text-red-600" : "text-green-600 bg-green-100"}`}
+            className={`px-4 py-1.5 text-sm text-center inline-block font-semibold rounded-lg ${isOutOfStock(product) ? "bg-red-100 text-red-600" : "text-green-600 bg-green-100"}`}
           >
-            {(product?.stock as number) > 0 ? "In Stock" : "Out of Stock"}
+            {isOutOfStock(product) ? "Out of Stock" : "In Stock"}
           </p>
         </div>
         <div className="flex items-center gap-2.5 lg:gap-3">
@@ -64,22 +105,21 @@ const SingleProductPage = async ({
         </div>
         <ProductCharacteristics product={product} />
         <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-b-gray-200 py-5 -mt-2">
-          <div className="flex items-center gap-2 text-sm text-black hover:text-red-600 hoverEffect">
-            <RxBorderSplit className="text-lg" />
-            <p>Compare color</p>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-black hover:text-red-600 hoverEffect">
+          <Link
+            href={`/contact`}
+            className="flex items-center gap-2 text-sm text-black hover:text-shop_dark_green hoverEffect"
+          >
             <FaRegQuestionCircle className="text-lg" />
-            <p>Ask a question</p>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-black hover:text-red-600 hoverEffect">
+            Ask a question
+          </Link>
+          <Link
+            href="/help#delivery"
+            className="flex items-center gap-2 text-sm text-black hover:text-shop_dark_green hoverEffect"
+          >
             <TbTruckDelivery className="text-lg" />
-            <p>Delivery & Return</p>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-black hover:text-red-600 hoverEffect">
-            <FiShare2 className="text-lg" />
-            <p>Share</p>
-          </div>
+            Delivery &amp; Return
+          </Link>
+          <ShareButton title={product?.name} />
         </div>
         <div className="flex flex-col">
           <div className="border border-lightColor/25 border-b-0 p-3 flex items-center gap-2.5">
@@ -88,8 +128,8 @@ const SingleProductPage = async ({
               <p className="text-base font-semibold text-black">
                 Free Delivery
               </p>
-              <p className="text-sm text-gray-500 underline underline-offset-2">
-                Enter your Postal code for Delivey Availability.
+              <p className="text-sm text-gray-500">
+                Free delivery on every order within the USA.
               </p>
             </div>
           </div>
@@ -97,11 +137,16 @@ const SingleProductPage = async ({
             <CornerDownLeft size={30} className="text-shop_orange" />
             <div>
               <p className="text-base font-semibold text-black">
-                Return Delivery
+                Easy Returns
               </p>
-              <p className="text-sm text-gray-500 ">
-                Free 30days Delivery Returns.{" "}
-                <span className="underline underline-offset-2">Details</span>
+              <p className="text-sm text-gray-500">
+                Problem with your order? We&apos;ll help.{" "}
+                <Link
+                  href="/help#returns"
+                  className="underline underline-offset-2 hover:text-shop_dark_green"
+                >
+                  Details
+                </Link>
               </p>
             </div>
           </div>

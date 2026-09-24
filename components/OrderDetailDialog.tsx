@@ -14,6 +14,8 @@ import {
 import Image from "next/image";
 import { urlFor } from "@/sanity/lib/image";
 import PriceFormatter from "./PriceFormatter";
+import { Badge } from "./ui/badge";
+import { formatOrderStatus, ORDER_STATUS_STYLES } from "./OrdersComponent";
 
 interface OrderDetailsDialogProps {
   order: MY_ORDERS_QUERYResult[number] | null;
@@ -46,20 +48,30 @@ const OrderDetailDialog: React.FC<OrderDetailsDialogProps> = ({
           </p>
           <p>
             <strong>Status:</strong>{" "}
-            <span className="capitalize text-green-600 font-medium">
-              {order.status}
-            </span>
+            {order.status && (
+              <Badge
+                className={`capitalize ${ORDER_STATUS_STYLES[order.status] ?? "bg-gray-100 text-gray-800"}`}
+              >
+                {formatOrderStatus(order.status)}
+              </Badge>
+            )}
           </p>
           <p>
-            <strong>Invoice Number:</strong> {order?.invoice?.number}
+            <strong>Invoice Number:</strong> {order?.invoice?.number ?? "—"}
           </p>
-          {order?.invoice && (
-            <Button className="bg-transparent border text-darkColor/80 mt-2 hover:text-darkColor hover:border-darkColor hover:bg-darkColor/10 hoverEffect ">
-              {order?.invoice?.hosted_invoice_url && (
-                <Link href={order?.invoice?.hosted_invoice_url} target="_blank">
-                  Download Invoice
-                </Link>
-              )}
+          {order?.invoice?.hosted_invoice_url && (
+            <Button
+              asChild
+              variant="outline"
+              className="mt-2 text-darkColor/80 hover:text-darkColor hover:border-darkColor hoverEffect"
+            >
+              <Link
+                href={order.invoice.hosted_invoice_url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Download Invoice
+              </Link>
             </Button>
           )}
         </div>
@@ -77,8 +89,8 @@ const OrderDetailDialog: React.FC<OrderDetailsDialogProps> = ({
                 <TableCell className="flex items-center gap-2">
                   {product?.product?.images && (
                     <Image
-                      src={urlFor(product?.product?.images[0]).url()}
-                      alt="productImage"
+                      src={urlFor(product?.product?.images[0]).width(100).url()}
+                      alt={product?.product?.name ?? "Product image"}
                       width={50}
                       height={50}
                       className="border rounded-sm"
@@ -90,7 +102,7 @@ const OrderDetailDialog: React.FC<OrderDetailsDialogProps> = ({
                 <TableCell>{product?.quantity}</TableCell>
                 <TableCell>
                   <PriceFormatter
-                    amount={product?.product?.price}
+                    amount={product?.price ?? product?.product?.price}
                     className="text-black font-medium"
                   />
                 </TableCell>

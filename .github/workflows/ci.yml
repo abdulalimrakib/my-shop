@@ -11,8 +11,11 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint & type check
+    name: Lint, type check & build
     runs-on: ubuntu-latest
+    env:
+      # Secrets can't be used in `if:` directly, so expose whether one is set
+      HAS_BUILD_SECRETS: ${{ secrets.SANITY_API_READ_TOKEN != '' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -39,16 +42,20 @@ jobs:
         run: npm run lint
 
       - name: Type check
-        run: |
-          BASELINE=7
-          npx tsc --noEmit 2>&1 | tee /tmp/tsc.log || true
-          COUNT=$(grep -c "error TS" /tmp/tsc.log || true)
-          echo "TypeScript errors: $COUNT (baseline: $BASELINE)"
-          if [ "$COUNT" -gt "$BASELINE" ]; then
-            echo "::error::$COUNT type errors, baseline is $BASELINE — this change introduced $((COUNT - BASELINE)) new one(s)."
-            grep "error TS" /tmp/tsc.log
-            exit 1
-          fi
-          if [ "$COUNT" -lt "$BASELINE" ]; then
-            echo "::notice::Only $COUNT errors (baseline $BASELINE) — please lower BASELINE in .github/workflows/ci.yml"
-          fi
+        run: npx tsc --noEmit
+
+      # `next build` prerenders pages from Sanity, so it needs real read
+      # credentials. Add them as repository secrets to enable this step.
+      - name: Build
+        if: env.HAS_BUILD_SECRETS == 'true'
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SANITY_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_SANITY_PROJECT_ID }}
+          NEXT_PUBLIC_SANITY_DATASET: ${{ secrets.NEXT_PUBLIC_SANITY_DATASET }}
+          SANITY_API_READ_TOKEN: ${{ secrets.SANITY_API_READ_TOKEN }}
+          SANITY_API_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          NEXT_PUBLIC_BASE_URL: https://example.com

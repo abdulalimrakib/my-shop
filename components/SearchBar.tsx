@@ -1,7 +1,7 @@
 "use client";
 
-import { Product } from "@/sanity.types";
-import { client } from "@/sanity/lib/client";
+import { SearchProduct } from "@/types";
+import { searchProducts } from "@/actions/catalog";
 import { urlFor } from "@/sanity/lib/image";
 import { Search, X } from "lucide-react";
 import Image from "next/image";
@@ -17,20 +17,6 @@ import {
 import { Input } from "./ui/input";
 import PriceView from "./PriceView";
 import { Spinner } from "./ui/spinner";
-
-const SEARCH_QUERY = `*[_type == "product" && (
-    name match $search
-    || description match $search
-    || categories[]->title match $search
-    || brand->title match $search
-  )] | order(name asc) [0...10] {
-    ...,"categories": categories[]->title,"brandTitle": brand->title
-  }`;
-
-type SearchResult = Omit<Product, "categories"> & {
-  categories?: string[] | null;
-  brandTitle?: string | null;
-};
 
 const escapeRegExp = (text: string) =>
   text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -84,7 +70,7 @@ const descriptionSnippet = (text: string, matcher: RegExp) => {
 const SearchBar = () => {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [products, setProducts] = useState<SearchResult[]>([]);
+  const [products, setProducts] = useState<SearchProduct[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -100,9 +86,7 @@ const SearchBar = () => {
     // Debounce so we don't query Sanity on every keystroke
     const timer = setTimeout(async () => {
       try {
-        const data = await client.fetch(SEARCH_QUERY, {
-          search: `${term}*`,
-        });
+        const data = await searchProducts(term);
         if (!cancelled) setProducts(data);
       } catch (error) {
         console.error("Product search failed:", error);
@@ -179,7 +163,7 @@ const SearchBar = () => {
                 {product.images?.[0] && (
                   <div className="w-20 h-20 shrink-0 bg-shop_light_bg rounded-md overflow-hidden border">
                     <Image
-                      src={urlFor(product.images[0]).url()}
+                      src={urlFor(product.images[0]).width(160).url()}
                       alt={product.name ?? "productImage"}
                       width={80}
                       height={80}

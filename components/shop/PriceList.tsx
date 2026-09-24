@@ -2,13 +2,24 @@ import React from "react";
 import Title from "../Title";
 import FilterOption from "./FilterOption";
 
+// Ranges are [min, max): a $100 product belongs to "$100 - $200" only.
+// An empty max ("500-") means no upper limit.
 const priceArray = [
   { title: "Under $100", value: "0-100" },
   { title: "$100 - $200", value: "100-200" },
   { title: "$200 - $300", value: "200-300" },
   { title: "$300 - $500", value: "300-500" },
-  { title: "Over $500", value: "500-10000" },
+  { title: "$500 and above", value: "500-" },
 ];
+
+export const parsePriceRange = (value: string) => {
+  const match = /^(\d+)-(\d*)$/.exec(value);
+  if (!match) return null;
+  return {
+    min: Number(match[1]),
+    max: match[2] ? Number(match[2]) : null,
+  };
+};
 
 interface Props {
   selectedPrices: string[];
@@ -22,7 +33,6 @@ const PriceList = ({ selectedPrices, setSelectedPrices }: Props) => {
         {priceArray?.map((price) => (
           <FilterOption
             key={price.value}
-            id={`price-${price.value}`}
             value={price.value}
             label={price.title}
             selected={selectedPrices}

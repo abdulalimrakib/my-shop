@@ -21,7 +21,6 @@ const CategoryList = ({
         {categories?.map((category) => (
           <FilterOption
             key={category?._id}
-            id={`category-${category?.slug?.current}`}
             value={category?.slug?.current as string}
             label={category?.title}
             selected={selectedCategories}

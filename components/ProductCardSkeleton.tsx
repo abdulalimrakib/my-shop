@@ -6,7 +6,7 @@ import { Skeleton } from "./ui/skeleton";
 // Placeholder with the same shape as ProductCard, shown while products load
 export const ProductCardSkeleton = () => {
   return (
-    <Card className="gap-0 py-0 rounded-md shadow-none border-darkBlue/20 overflow-hidden">
+    <Card className="gap-0 py-0 rounded-md shadow-none overflow-hidden">
       <Skeleton className="h-64 w-full rounded-none bg-shop_light_bg" />
       <CardContent className="p-3 flex flex-col gap-2.5">
         <Skeleton className="h-3 w-1/2" />

@@ -9,7 +9,18 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
+// Run with the ESLint CLI (`npm run lint`); `next lint` is deprecated.
 const eslintConfig = [
+  {
+    ignores: [
+      "node_modules/**",
+      ".next/**",
+      "out/**",
+      "build/**",
+      "next-env.d.ts",
+      "sanity.types.ts",
+    ],
+  },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
 ];
 

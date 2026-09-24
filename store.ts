@@ -1,15 +1,16 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { Product } from "./sanity.types";
+import { CatalogProduct } from "@/types";
+import { originalPrice } from "./lib/price";
 
 export interface CartItem {
-  product: Product;
+  product: CatalogProduct;
   quantity: number;
 }
 
 interface StoreState {
   items: CartItem[];
-  addItem: (product: Product) => void;
+  addItem: (product: CatalogProduct) => void;
   removeItem: (productId: string) => void;
   deleteCartProduct: (productId: string) => void;
   resetCart: () => void;
@@ -18,8 +19,8 @@ interface StoreState {
   getItemCount: (productId: string) => number;
   getGroupedItems: () => CartItem[];
   //   // favorite
-  favoriteProduct: Product[];
-  addToFavorite: (product: Product) => Promise<void>;
+  favoriteProduct: CatalogProduct[];
+  addToFavorite: (product: CatalogProduct) => Promise<void>;
   removeFromFavorite: (productId: string) => void;
   resetFavorite: () => void;
 }
@@ -75,9 +76,9 @@ const useStore = create<StoreState>()(
       getSubTotalPrice: () => {
         return get().items.reduce((total, item) => {
           const price = item.product.price ?? 0;
-          const discount = ((item.product.discount ?? 0) * price) / 100;
-          const discountedPrice = price + discount;
-          return total + discountedPrice * item.quantity;
+          return (
+            total + originalPrice(price, item.product.discount) * item.quantity
+          );
         }, 0);
       },
       getItemCount: (productId) => {
@@ -85,7 +86,7 @@ const useStore = create<StoreState>()(
         return item ? item.quantity : 0;
       },
       getGroupedItems: () => get().items,
-      addToFavorite: (product: Product) => {
+      addToFavorite: (product: CatalogProduct) => {
         return new Promise<void>((resolve) => {
           set((state: StoreState) => {
             const isFavorite = state.favoriteProduct.some(

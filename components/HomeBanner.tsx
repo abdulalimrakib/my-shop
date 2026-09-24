@@ -22,7 +22,8 @@ const HomeBanner = () => {
       <div>
         <Image
           src={banner_1}
-          alt="banner_1"
+          alt="Wireless headphones on sale"
+          priority
           className="hidden md:inline-flex w-96"
         />
       </div>

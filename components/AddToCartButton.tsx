@@ -1,25 +1,26 @@
 "use client";
-import { Product } from "@/sanity.types";
+import { CatalogProduct } from "@/types";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { ShoppingBag } from "lucide-react";
 import useStore from "@/store";
 import toast from "react-hot-toast";
+import { canAddMore, isOutOfStock } from "@/lib/stock";
 import PriceFormatter from "./PriceFormatter";
 import QuantityButtons from "./QuantityButtons";
 
 interface Props {
-  product: Product;
+  product: CatalogProduct;
   className?: string;
 }
 
 const AddToCartButton = ({ product, className }: Props) => {
   const { addItem, getItemCount } = useStore();
   const itemCount = getItemCount(product?._id);
-  const isOutOfStock = product?.stock === 0;
+  const outOfStock = isOutOfStock(product);
 
   const handleAddToCart = () => {
-    if ((product?.stock as number) > itemCount) {
+    if (canAddMore(product, itemCount)) {
       addItem(product);
       toast.success(
         `${product?.name?.substring(0, 12)}... added successfully!`
@@ -46,13 +47,13 @@ const AddToCartButton = ({ product, className }: Props) => {
       ) : (
         <Button
           onClick={handleAddToCart}
-          disabled={isOutOfStock}
+          disabled={outOfStock}
           className={cn(
-            "w-full bg-shop_dark_green/80 text-lightBg shadow-none border border-shop_dark_green/80 font-semibold tracking-wide text-white hover:bg-shop_dark_green hover:border-shop_dark_green hoverEffect",
+            "w-full bg-shop_dark_green/80 shadow-none border border-shop_dark_green/80 font-semibold tracking-wide text-white hover:bg-shop_dark_green hover:border-shop_dark_green hoverEffect",
             className
           )}
         >
-          <ShoppingBag /> {isOutOfStock ? "Out of Stock" : "Add to Cart"}
+          <ShoppingBag /> {outOfStock ? "Out of Stock" : "Add to Cart"}
         </Button>
       )}
     </div>

@@ -1,117 +1,48 @@
-"use client";
+import SuccessCard, { SuccessState } from "@/components/SuccessCard";
+import stripe from "@/lib/stripe";
+import { serverClient } from "@/sanity/lib/serverClient";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
-import useStore from "@/store";
-import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect } from "react";
-import { motion } from "motion/react";
-import { Check, Home, Package, ShoppingBag } from "lucide-react";
-import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
+export const metadata = { title: "Order status" };
 
-const SuccessPageContent = () => {
-  const { resetCart } = useStore();
-  const searchParams = useSearchParams();
-  const orderNumber = searchParams.get("orderNumber");
-
-  useEffect(() => {
-    if (orderNumber) {
-      resetCart();
+// Confirms the checkout with Stripe instead of trusting the URL
+async function getSuccessState(
+  sessionId: string | undefined,
+  userId: string
+): Promise<SuccessState> {
+  if (!sessionId?.startsWith("cs_")) return { kind: "unverified" };
+  try {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const orderNumber = session.metadata?.orderNumber;
+    if (session.metadata?.clerkUserId !== userId || !orderNumber) {
+      return { kind: "unverified" };
     }
-  }, [orderNumber, resetCart]);
-  return (
-    <div className="py-5 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center mx-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-xl w-full"
-      >
-        <Card className="bg-white rounded-2xl gap-8 shadow-2xl p-6 text-center">
-          <CardHeader className="px-0">
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-              className="w-20 h-20 bg-black rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg"
-            >
-              <Check className="text-white w-10 h-10" />
-            </motion.div>
+    if (session.status !== "complete") return { kind: "unverified" };
+    if (session.payment_status === "unpaid") {
+      return { kind: "pending", orderNumber };
+    }
+    const recorded = await serverClient.fetch<boolean>(
+      `defined(*[_id == $orderId][0]._id)`,
+      { orderId: `order-${session.id}` }
+    );
+    return { kind: "confirmed", orderNumber, recorded };
+  } catch (error) {
+    console.error("Failed to verify checkout session", error);
+    return { kind: "unverified" };
+  }
+}
 
-            <CardTitle className="text-3xl font-bold text-gray-900">
-              Order Confirmed!
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-0 space-y-4 text-left">
-            <p className="text-gray-700">
-              Thank you for your purchase. We&apos;re processing your order and
-              will ship it soon. A confirmation email with your order details
-              will be sent to your inbox shortly.
-            </p>
-            <p className="text-gray-700">
-              Order Number:{" "}
-              <span className="text-black font-semibold break-all">
-                {orderNumber}
-              </span>
-            </p>
-          </CardContent>
-          <CardFooter className="px-0 grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Button
-              asChild
-              size="lg"
-              className="h-12 rounded-lg bg-black text-white font-semibold shadow-md hover:bg-gray-800"
-            >
-              <Link href="/">
-                <Home className="size-5" />
-                Home
-              </Link>
-            </Button>
-            <Button
-              asChild
-              size="lg"
-              className="h-12 rounded-lg bg-lightGreen text-black border border-lightGreen font-semibold shadow-md hover:bg-gray-100"
-            >
-              <Link href="/orders">
-                <Package className="size-5" />
-                Orders
-              </Link>
-            </Button>
-            <Button
-              asChild
-              size="lg"
-              className="h-12 rounded-lg bg-black text-white font-semibold shadow-md hover:bg-gray-800"
-            >
-              <Link href="/">
-                <ShoppingBag className="size-5" />
-                Shop
-              </Link>
-            </Button>
-          </CardFooter>
-        </Card>
-      </motion.div>
-    </div>
-  );
-};
-
-const SuccessPage = () => {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center gap-2 py-20">
-          <Spinner className="size-6" /> Loading...
-        </div>
-      }
-    >
-      <SuccessPageContent />
-    </Suspense>
-  );
+const SuccessPage = async ({
+  searchParams,
+}: {
+  searchParams: Promise<{ session_id?: string }>;
+}) => {
+  const { userId } = await auth();
+  if (!userId) redirect("/");
+  const { session_id } = await searchParams;
+  const state = await getSuccessState(session_id, userId);
+  return <SuccessCard state={state} />;
 };
 
 export default SuccessPage;

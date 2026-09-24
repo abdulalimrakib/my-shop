@@ -1,10 +1,12 @@
 import { sanityFetch } from "../lib/live";
+import { serverClient } from "../lib/serverClient";
 import {
   BLOG_CATEGORIES,
-  BRAND_QUERY,
+  BLOGS_PAGE_QUERY,
+  BRAND_BY_SLUG_QUERY,
   BRANDS_QUERY,
+  CATEGORIES_QUERY,
   DEAL_PRODUCTS,
-  GET_ALL_BLOG,
   LATEST_BLOG_QUERY,
   MY_ORDERS_QUERY,
   OTHERS_BLOG_QUERY,
@@ -12,154 +14,94 @@ import {
   SINGLE_BLOG_QUERY,
 } from "./query";
 
-const getCategories = async (quantity?: number) => {
-  try {
-    const query = quantity
-      ? `*[_type == 'category'] | order(name asc) [0...$quantity] {
-          ...,
-          "productCount": count(*[_type == "product" && references(^._id)])
-        }`
-      : `*[_type == 'category'] | order(name asc) {
-          ...,
-          "productCount": count(*[_type == "product" && references(^._id)])
-        }`;
-    const { data } = await sanityFetch({
-      query,
-      params: quantity ? { quantity } : {},
-    });
-    return data;
-  } catch (error) {
-    console.log("Error fetching categories", error);
-    return [];
-  }
+// Errors are not swallowed here: a failed fetch reaches the nearest
+// error.tsx instead of rendering as "no products" or "no orders".
+
+const getCategories = async (quantity = 1000) => {
+  const { data } = await sanityFetch({
+    query: CATEGORIES_QUERY,
+    params: { quantity },
+  });
+  return data ?? [];
 };
 
 const getAllBrands = async () => {
-  try {
-    const { data } = await sanityFetch({ query: BRANDS_QUERY });
-    return data ?? [];
-  } catch (error) {
-    console.log("Error fetching all brands:", error);
-    return [];
-  }
+  const { data } = await sanityFetch({ query: BRANDS_QUERY });
+  return data ?? [];
 };
 
 const getLatestBlogs = async () => {
-  try {
-    const { data } = await sanityFetch({ query: LATEST_BLOG_QUERY });
-    return data ?? [];
-  } catch (error) {
-    console.log("Error fetching latest Blogs:", error);
-    return [];
-  }
+  const { data } = await sanityFetch({ query: LATEST_BLOG_QUERY });
+  return data ?? [];
 };
+
 const getDealProducts = async () => {
-  try {
-    const { data } = await sanityFetch({ query: DEAL_PRODUCTS });
-    return data ?? [];
-  } catch (error) {
-    console.log("Error fetching deal Products:", error);
-    return [];
-  }
+  const { data } = await sanityFetch({ query: DEAL_PRODUCTS });
+  return data ?? [];
 };
+
 const getProductBySlug = async (slug: string) => {
-  try {
-    const product = await sanityFetch({
-      query: PRODUCT_BY_SLUG_QUERY,
-      params: {
-        slug,
-      },
-    });
-    return product?.data || null;
-  } catch (error) {
-    console.error("Error fetching product by ID:", error);
-    return null;
-  }
+  const { data } = await sanityFetch({
+    query: PRODUCT_BY_SLUG_QUERY,
+    params: { slug },
+  });
+  return data ?? null;
 };
-const getBrand = async (slug: string) => {
-  try {
-    const product = await sanityFetch({
-      query: BRAND_QUERY,
-      params: {
-        slug,
-      },
-    });
-    return product?.data || null;
-  } catch (error) {
-    console.error("Error fetching product by ID:", error);
-    return null;
-  }
+
+const getBrandBySlug = async (slug: string) => {
+  const { data } = await sanityFetch({
+    query: BRAND_BY_SLUG_QUERY,
+    params: { slug },
+  });
+  return data ?? null;
 };
+
+// Orders are private and must be fresh right after checkout, so they skip
+// the cached catalog fetch and use the uncached token client
 const getMyOrders = async (userId: string) => {
-  try {
-    const orders = await sanityFetch({
-      query: MY_ORDERS_QUERY,
-      params: { userId },
-    });
-    return orders?.data || null;
-  } catch (error) {
-    console.error("Error fetching product by ID:", error);
-    return null;
-  }
+  const data = await serverClient.fetch(MY_ORDERS_QUERY, { userId });
+  return data ?? [];
 };
-const getAllBlogs = async (quantity: number) => {
-  try {
-    const { data } = await sanityFetch({
-      query: GET_ALL_BLOG,
-      params: { quantity },
-    });
-    return data ?? [];
-  } catch (error) {
-    console.log("Error fetching all brands:", error);
-    return [];
-  }
+
+const getBlogsPage = async (page: number, pageSize: number) => {
+  const start = (page - 1) * pageSize;
+  const { data } = await sanityFetch({
+    query: BLOGS_PAGE_QUERY,
+    params: { start, end: start + pageSize },
+  });
+  return { blogs: data?.blogs ?? [], total: data?.total ?? 0 };
 };
 
 const getSingleBlog = async (slug: string) => {
-  try {
-    const { data } = await sanityFetch({
-      query: SINGLE_BLOG_QUERY,
-      params: { slug },
-    });
-    return data ?? [];
-  } catch (error) {
-    console.log("Error fetching all brands:", error);
-    return [];
-  }
+  const { data } = await sanityFetch({
+    query: SINGLE_BLOG_QUERY,
+    params: { slug },
+  });
+  return data ?? null;
 };
+
 const getBlogCategories = async () => {
-  try {
-    const { data } = await sanityFetch({
-      query: BLOG_CATEGORIES,
-    });
-    return data ?? [];
-  } catch (error) {
-    console.log("Error fetching all brands:", error);
-    return [];
-  }
+  const { data } = await sanityFetch({ query: BLOG_CATEGORIES });
+  return data ?? [];
 };
 
 const getOthersBlog = async (slug: string, quantity: number) => {
-  try {
-    const { data } = await sanityFetch({
-      query: OTHERS_BLOG_QUERY,
-      params: { slug, quantity },
-    });
-    return data ?? [];
-  } catch (error) {
-    console.log("Error fetching all brands:", error);
-    return [];
-  }
+  const { data } = await sanityFetch({
+    query: OTHERS_BLOG_QUERY,
+    params: { slug, quantity },
+  });
+  return data ?? [];
 };
+
 export {
   getCategories,
   getAllBrands,
   getLatestBlogs,
   getDealProducts,
   getProductBySlug,
-  getBrand,
+  getBrandBySlug,
   getMyOrders,
-  getAllBlogs,
+  getBlogsPage,
   getSingleBlog,
   getBlogCategories,
   getOthersBlog,

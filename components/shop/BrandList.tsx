@@ -17,7 +17,6 @@ const BrandList = ({ brands, selectedBrands, setSelectedBrands }: Props) => {
         {brands?.map((brand) => (
           <FilterOption
             key={brand?._id}
-            id={`brand-${brand?.slug?.current}`}
             value={brand?.slug?.current as string}
             label={brand?.title}
             selected={selectedBrands}

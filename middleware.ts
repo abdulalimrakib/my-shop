@@ -1,6 +1,12 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-export default clerkMiddleware();
+// Pages that only make sense for a signed-in user. The pages also check
+// auth themselves; this makes sure a new page under these paths is covered too.
+const isProtectedRoute = createRouteMatcher(["/orders(.*)", "/success(.*)"]);
+
+export default clerkMiddleware(async (auth, req) => {
+  if (isProtectedRoute(req)) await auth.protect();
+});
 
 export const config = {
   matcher: [

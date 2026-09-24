@@ -15,6 +15,14 @@ export const addressType = defineType({
       validation: (Rule) => Rule.required().max(50),
     }),
     defineField({
+      name: "clerkUserId",
+      title: "Store User ID",
+      type: "string",
+      description: "The Clerk user who owns this address",
+      readOnly: true,
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
       name: "email",
       title: "User Email",
       type: "email",

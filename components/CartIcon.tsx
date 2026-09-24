@@ -8,7 +8,11 @@ import { Badge } from "./ui/badge";
 const CartIcon = () => {
   const { items } = useStore();
   return (
-    <Link href={"/cart"} className="group relative">
+    <Link
+      href={"/cart"}
+      aria-label={`Cart, ${items?.length ?? 0} items`}
+      className="group relative"
+    >
       <ShoppingBag className="w-5 h-5 hover:text-shop_light_green hoverEffect" />
       <Badge className="absolute -top-1 -right-1 h-3.5 min-w-3.5 px-0.5 bg-shop_dark_green text-white text-xs font-semibold tabular-nums">
         {items?.length ? items?.length : 0}
