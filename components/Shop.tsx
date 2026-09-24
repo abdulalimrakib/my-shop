@@ -22,28 +22,26 @@ const Shop = ({ categories, brands }: Props) => {
   const categoryParams = searchParams?.get("category");
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(
-    categoryParams || null
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(
+    categoryParams ? [categoryParams] : []
   );
-  const [selectedBrand, setSelectedBrand] = useState<string | null>(
-    brandParams || null
+  const [selectedBrands, setSelectedBrands] = useState<string[]>(
+    brandParams ? [brandParams] : []
   );
-  const [selectedPrice, setSelectedPrice] = useState<string | null>(null);
+  const [selectedPrices, setSelectedPrices] = useState<string[]>([]);
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      let minPrice = 0;
-      let maxPrice = 10000;
-      if (selectedPrice) {
-        const [min, max] = selectedPrice.split("-").map(Number);
-        minPrice = min;
-        maxPrice = max;
-      }
+      const priceRanges = selectedPrices.map((value) => {
+        const [min, max] = value.split("-").map(Number);
+        return { min, max };
+      });
+      // Options within a group are OR-ed; the groups themselves are AND-ed
       const query = `
       *[_type == 'product' 
-        && (!defined($selectedCategory) || references(*[_type == "category" && slug.current == $selectedCategory]._id))
-        && (!defined($selectedBrand) || references(*[_type == "brand" && slug.current == $selectedBrand]._id))
-        && price >= $minPrice && price <= $maxPrice
+        && (count($categories) == 0 || count((categories[]->slug.current)[@ in $categories]) > 0)
+        && (count($brands) == 0 || brand->slug.current in $brands)
+        && (count($priceRanges) == 0 || count($priceRanges[^.price >= min && ^.price <= max]) > 0)
       ] 
       | order(name asc) {
         ...,"categories": categories[]->title
@@ -51,7 +49,11 @@ const Shop = ({ categories, brands }: Props) => {
     `;
       const data = await client.fetch(
         query,
-        { selectedCategory, selectedBrand, minPrice, maxPrice },
+        {
+          categories: selectedCategories,
+          brands: selectedBrands,
+          priceRanges,
+        },
         { next: { revalidate: 0 } }
       );
       setProducts(data);
@@ -64,7 +66,7 @@ const Shop = ({ categories, brands }: Props) => {
 
   useEffect(() => {
     fetchProducts();
-  }, [selectedCategory, selectedBrand, selectedPrice]);
+  }, [selectedCategories, selectedBrands, selectedPrices]);
   return (
     <div className="border-t">
       <Container className="mt-5">
@@ -73,14 +75,14 @@ const Shop = ({ categories, brands }: Props) => {
             <Title className="text-lg uppercase tracking-wide">
               Get the products as your needs
             </Title>
-            {(selectedCategory !== null ||
-              selectedBrand !== null ||
-              selectedPrice !== null) && (
+            {(selectedCategories.length > 0 ||
+              selectedBrands.length > 0 ||
+              selectedPrices.length > 0) && (
               <button
                 onClick={() => {
-                  setSelectedCategory(null);
-                  setSelectedBrand(null);
-                  setSelectedPrice(null);
+                  setSelectedCategories([]);
+                  setSelectedBrands([]);
+                  setSelectedPrices([]);
                 }}
                 className="text-shop_dark_green underline text-sm mt-2 font-medium hover:text-darkRed hoverEffect"
               >
@@ -93,17 +95,17 @@ const Shop = ({ categories, brands }: Props) => {
           <div className="md:sticky md:top-20 md:self-start md:h-[calc(100vh-160px)] md:overflow-y-auto md:min-w-64 pb-5 md:border-r border-r-shop_btn_dark_green/50 scrollbar-hide">
             <CategoryList
               categories={categories}
-              selectedCategory={selectedCategory}
-              setSelectedCategory={setSelectedCategory}
+              selectedCategories={selectedCategories}
+              setSelectedCategories={setSelectedCategories}
             />
             <BrandList
               brands={brands}
-              setSelectedBrand={setSelectedBrand}
-              selectedBrand={selectedBrand}
+              selectedBrands={selectedBrands}
+              setSelectedBrands={setSelectedBrands}
             />
             <PriceList
-              setSelectedPrice={setSelectedPrice}
-              selectedPrice={selectedPrice}
+              selectedPrices={selectedPrices}
+              setSelectedPrices={setSelectedPrices}
             />
           </div>
           <div className="flex-1 pt-5">
